@@ -20,11 +20,13 @@
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/Expr.h"
 #include "clang/AST/ExprConcepts.h"
+#include "clang/AST/ExprCilk.h"
 #include "clang/AST/ExprCXX.h"
 #include "clang/AST/ExprObjC.h"
 #include "clang/AST/ExprOpenMP.h"
 #include "clang/AST/OpenMPClause.h"
 #include "clang/AST/Stmt.h"
+#include "clang/AST/StmtCilk.h"
 #include "clang/AST/StmtCXX.h"
 #include "clang/AST/StmtObjC.h"
 #include "clang/AST/StmtOpenMP.h"
@@ -1349,6 +1351,18 @@ public:
                                   Inc, RParenLoc, Body);
   }
 
+  /// Build a new Cilk for statement.
+  ///
+  /// By default, performs semantic analysis to build the new statement.
+  /// Subclasses may override this routine to provide different behavior.
+  StmtResult RebuildCilkForStmt(SourceLocation ForLoc, SourceLocation LParenLoc,
+                                Stmt *Init, Sema::ConditionResult Cond,
+                                Sema::FullExprArg Inc, SourceLocation RParenLoc,
+                                VarDecl *LoopVar, Stmt *Body) {
+    return getSema().ActOnCilkForStmt(ForLoc, LParenLoc, Init, Cond,
+                                      Inc, RParenLoc, Body, LoopVar);
+  }
+
   /// Build a new goto statement.
   ///
   /// By default, performs semantic analysis to build the new statement.
@@ -1374,6 +1388,22 @@ public:
   /// Subclasses may override this routine to provide different behavior.
   StmtResult RebuildReturnStmt(SourceLocation ReturnLoc, Expr *Result) {
     return getSema().BuildReturnStmt(ReturnLoc, Result);
+  }
+
+  /// Build a new Cilk spawn statment.
+  ///
+  /// By default, performs semantic analysis to build the new expression.
+  /// Subclasses may override this routine to provide different behavior.
+  StmtResult RebuildCilkSpawnStmt(SourceLocation SpawnLoc, Stmt *S) {
+    return getSema().ActOnCilkSpawnStmt(SpawnLoc, S);
+  }
+
+  /// Build a new Cilk spawn expression.
+  ///
+  /// By default, performs semantic analysis to build the new expression.
+  /// Subclasses may override this routine to provide different behavior.
+  ExprResult RebuildCilkSpawnExpr(SourceLocation SpawnLoc, Expr *E) {
+    return getSema().ActOnCilkSpawnExpr(SpawnLoc, E);
   }
 
   /// Build a new declaration statement.

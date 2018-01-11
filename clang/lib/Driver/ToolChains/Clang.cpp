@@ -5085,6 +5085,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   const SanitizerArgs &Sanitize = TC.getSanitizerArgs();
   Sanitize.addArgs(TC, Args, CmdArgs, InputType);
 
+  if (Args.hasArg(options::OPT_fcsi))
+    Args.AddLastArg(CmdArgs, options::OPT_fcsi);
+
   const XRayArgs &XRay = TC.getXRayArgs();
   XRay.addArgs(TC, Args, CmdArgs, InputType);
 

@@ -1287,6 +1287,8 @@ CanThrowResult Sema::canThrow(const Stmt *S) {
     if (cast<Expr>(S)->getType()->isVariablyModifiedType())
       return CT_Can;
     return canSubStmtsThrow(*this, S);
+  case Expr::CilkSpawnExprClass:
+    return canSubExprsThrow(*this, E);
 
     // Some might be dependent for other reasons.
   case Expr::ArraySubscriptExprClass:

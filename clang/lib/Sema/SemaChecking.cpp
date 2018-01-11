@@ -13059,6 +13059,18 @@ public:
     notePostMod(O, UO, UK_ModAsSideEffect);
   }
 
+  void VisitCilkSpawnExpr(CilkSpawnExpr *E) {
+    Object O = getObject(E->getSpawnedExpr(), true);
+    if (!O)
+      return VisitExpr(E);
+
+    // Cilk_spawn removes sequencing of the spawned expression.
+    // notePreUse(O, E);
+    Visit(E->getSpawnedExpr());
+    // notePostUse(O, E);
+  }
+
+  /// Don't visit the RHS of '&&' or '||' if it might not be evaluated.
   void VisitBinLOr(const BinaryOperator *BO) {
     // C++11 [expr.log.or]p2:
     //  If the second expression is evaluated, every value computation and
@@ -13069,6 +13081,10 @@ public:
     SequenceTree::Seq RHSRegion = Tree.allocate(Region);
     SequenceTree::Seq OldRegion = Region;
 
+    // The side-effects of the LHS of an '&&' are sequenced before the
+    // value computation of the RHS, and hence before the value computation
+    // of the '&&' itself, unless the LHS evaluates to zero. We treat them
+    // as if they were unconditionally sequenced.
     EvaluationTracker Eval(*this);
     {
       SequencedSubexpression Sequenced(*this);

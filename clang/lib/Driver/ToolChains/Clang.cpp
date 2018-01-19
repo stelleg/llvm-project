@@ -5023,6 +5023,24 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   Args.AddLastArg(CmdArgs, options::OPT_fdiagnostics_show_template_tree);
   Args.AddLastArg(CmdArgs, options::OPT_fno_elide_type);
 
+  // Forward flags for OpenMP or OpenACC. We don't do this if the current
+  // action is a device offloading action other than OpenMP or OpenACC.
+  bool HasOpenMPFlag = Args.hasFlag(options::OPT_fopenmp,
+                                    options::OPT_fopenmp_EQ,
+                                    options::OPT_fno_openmp, false);
+  // Forward flags for Cilk.
+  Args.AddLastArg(CmdArgs, options::OPT_fcilkplus);
+  Args.AddLastArg(CmdArgs, options::OPT_fdetach);
+  Args.AddLastArg(CmdArgs, options::OPT_ftapir_EQ);
+  Args.AddLastArg(CmdArgs, options::OPT_frhino);
+  if (Args.hasArg(options::OPT_fcilkplus) ||
+      Args.hasArg(options::OPT_ftapir_EQ) ||
+      Args.hasArg(options::OPT_fdetach))
+    if (getToolChain().getTriple().getOS() != llvm::Triple::Linux &&
+        getToolChain().getTriple().getOS() != llvm::Triple::UnknownOS &&
+        !getToolChain().getTriple().isMacOSX())
+      D.Diag(diag::err_drv_cilk_unsupported);
+
   // Forward flags for OpenMP. We don't do this if the current action is an
   // device offloading action other than OpenMP.
   if (Args.hasFlag(options::OPT_fopenmp, options::OPT_fopenmp_EQ,

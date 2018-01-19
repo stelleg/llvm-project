@@ -112,15 +112,6 @@ public:
 
   enum FileType { FT_Object, FT_Static, FT_Shared };
 
-  enum TapirRuntimeLibType {
-    TRLT_None,
-    TRLT_Serial,
-    TRLT_Cilk,
-    TRLT_OpenMP,
-    TRLT_CilkR,
-    TRLT_Unknown
-  };
-
 private:
   friend class RegisterEffectiveTriple;
 

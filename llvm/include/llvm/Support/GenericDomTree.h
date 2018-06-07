@@ -38,6 +38,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <set>
 
 namespace llvm {
 
@@ -58,15 +59,22 @@ template <class NodeT> class DomTreeNodeBase {
   friend struct DomTreeBuilder::SemiNCAInfo<DominatorTreeBase<NodeT, true>>;
 
   NodeT *TheBB;
-  DomTreeNodeBase *IDom;
+  //DomTreeNodeBase *IDom;
+  SmallVector<DomTreeNodeBase *, 2> Parents;
   unsigned Level;
   SmallVector<DomTreeNodeBase *, 4> Children;
+  std::set<DomTreeNodeBase *> dominators; 
   mutable unsigned DFSNumIn = ~0;
   mutable unsigned DFSNumOut = ~0;
-
+   
  public:
   DomTreeNodeBase(NodeT *BB, DomTreeNodeBase *iDom)
-      : TheBB(BB), IDom(iDom), Level(IDom ? IDom->Level + 1 : 0) {}
+      : TheBB(BB), Level(iDom ? iDom->Level + 1 : 0) {
+    if(iDom)
+      Parents = {iDom};
+    else
+      Parents = {}; 
+  }
 
   using iterator = typename SmallVector<DomTreeNodeBase *, 4>::iterator;
   using const_iterator =
@@ -86,8 +94,14 @@ template <class NodeT> class DomTreeNodeBase {
   }
 
   NodeT *getBlock() const { return TheBB; }
-  DomTreeNodeBase *getIDom() const { return IDom; }
+  DomTreeNodeBase *getIDom() const { 
+    if(Parents.empty()) return nullptr; 
+    else return Parents[0]; 
+  }
   unsigned getLevel() const { return Level; }
+
+  const SmallVector<DomTreeNodeBase *, 4> &getChildren() const { return Children; }
+  const SmallVector<DomTreeNodeBase *, 4> &getParents() const { return Parents; }
 
   std::unique_ptr<DomTreeNodeBase> addChild(
       std::unique_ptr<DomTreeNodeBase> C) {
@@ -97,6 +111,7 @@ template <class NodeT> class DomTreeNodeBase {
 
   bool isLeaf() const { return Children.empty(); }
   size_t getNumChildren() const { return Children.size(); }
+  size_t getNumParents() const { return Parents.size(); }
 
   void clearAllChildren() { Children.clear(); }
 
@@ -121,18 +136,18 @@ template <class NodeT> class DomTreeNodeBase {
   }
 
   void setIDom(DomTreeNodeBase *NewIDom) {
-    assert(IDom && "No immediate dominator?");
-    if (IDom == NewIDom) return;
+    if (Parents.empty()) Parents = {NewIDom};  
+    if (Parents[0] == NewIDom) return;
 
-    auto I = find(IDom->Children, this);
-    assert(I != IDom->Children.end() &&
+    auto I = find(Parents[0]->Children, this);
+    assert(I != Parents[0]->Children.end() &&
            "Not in immediate dominator children set!");
     // I am no longer your child...
-    IDom->Children.erase(I);
+    Parents[0]->Children.erase(I);
 
     // Switch to new dominator
-    IDom = NewIDom;
-    IDom->Children.push_back(this);
+    Parents[0] = NewIDom;
+    Parents[0]->Children.push_back(this);
 
     UpdateLevel();
   }
@@ -152,18 +167,20 @@ private:
   }
 
   void UpdateLevel() {
-    assert(IDom);
+    assert(!Parents.empty());
+    DomTreeNodeBase *IDom = Parents[0]; 
+
     if (Level == IDom->Level + 1) return;
 
     SmallVector<DomTreeNodeBase *, 64> WorkStack = {this};
 
     while (!WorkStack.empty()) {
       DomTreeNodeBase *Current = WorkStack.pop_back_val();
-      Current->Level = Current->IDom->Level + 1;
+      Current->Level = Current->getIDom()->Level + 1;
 
       for (DomTreeNodeBase *C : *Current) {
-        assert(C->IDom);
-        if (C->Level != C->IDom->Level + 1) WorkStack.push_back(C);
+        assert(!C->Parents.empty());
+        if (C->Level != C->Parents[0]->Level + 1) WorkStack.push_back(C);
       }
     }
   }
@@ -248,6 +265,9 @@ protected:
   // Dominators always have a single root, postdominators can have more.
   SmallVector<NodeT *, IsPostDom ? 4 : 1> Roots;
 
+  // We keep the special case of trees to take optimized code paths, TODO: necessary?
+  bool isTree = true; 
+
   using DomTreeNodeMapType =
      DenseMap<NodeT *, std::unique_ptr<DomTreeNodeBase<NodeT>>>;
   DomTreeNodeMapType DomTreeNodes;
@@ -255,6 +275,7 @@ protected:
   ParentPtr Parent = nullptr;
 
   mutable bool DFSInfoValid = false;
+  mutable bool DominatorsValid = false;
   mutable unsigned int SlowQueries = 0;
 
   friend struct DomTreeBuilder::SemiNCAInfo<DominatorTreeBase>;
@@ -410,6 +431,7 @@ protected:
 
   bool isReachableFromEntry(const DomTreeNodeBase<NodeT> *A) const { return A; }
 
+
   /// dominates - Returns true iff A dominates B.  Note that this is not a
   /// constant time operation!
   ///
@@ -442,15 +464,29 @@ protected:
            "Tree walk disagrees with dfs numbers!");
 #endif
 
-    if (DFSInfoValid)
-      return B->DominatedBy(A);
+    if (isTree){
+      if (DFSInfoValid)
+        return B->DominatedBy(A);
+    }
+    else {
+      if(DominatorsValid)
+        return B->dominators.find(const_cast<DomTreeNodeBase<NodeT>*>(A)) != 
+               B->dominators.end(); 
+    }
 
     // If we end up with too many slow queries, just update the
     // DFS numbers on the theory that we are going to keep querying.
     SlowQueries++;
     if (SlowQueries > 32) {
-      updateDFSNumbers();
-      return B->DominatedBy(A);
+      if(isTree) {
+        updateDFSNumbers();
+        return B->DominatedBy(A);
+      }
+      else{
+        updateDominators(); 
+        return B->dominators.find(const_cast<DomTreeNodeBase<NodeT>*>(A)) != 
+               B->dominators.end(); 
+      }
     }
 
     return dominatedBySlowTreeWalk(A, B);
@@ -488,7 +524,7 @@ protected:
     while (NodeA != NodeB) {
       if (NodeA->getLevel() < NodeB->getLevel()) std::swap(NodeA, NodeB);
 
-      NodeA = NodeA->IDom;
+      NodeA = NodeA->getIDom();
     }
 
     return NodeA->getBlock();
@@ -621,7 +657,8 @@ protected:
     DomTreeNodeBase<NodeT> *IDomNode = getNode(DomBB);
     assert(IDomNode && "Not immediate dominator specified for block!");
     DFSInfoValid = false;
-    return createChild(BB, IDomNode);
+    DominatorsValid = false;
+    return createChild(BB, IDomNode); 
   }
 
   /// Add a new node to the forward dominator tree and make it a new root.
@@ -634,6 +671,7 @@ protected:
     assert(!this->isPostDominator() &&
            "Cannot change root of post-dominator tree");
     DFSInfoValid = false;
+    DominatorsValid = false;
     DomTreeNodeBase<NodeT> *NewNode = createNode(BB);
     if (Roots.empty()) {
       addRoot(BB);
@@ -642,7 +680,7 @@ protected:
       NodeT *OldRoot = Roots.front();
       auto &OldNode = DomTreeNodes[OldRoot];
       OldNode = NewNode->addChild(std::move(DomTreeNodes[OldRoot]));
-      OldNode->IDom = NewNode;
+      OldNode->setIDom(NewNode);
       OldNode->UpdateLevel();
       Roots[0] = BB;
     }
@@ -656,6 +694,7 @@ protected:
                                 DomTreeNodeBase<NodeT> *NewIDom) {
     assert(N && NewIDom && "Cannot change null node pointers!");
     DFSInfoValid = false;
+    DominatorsValid = false;
     N->setIDom(NewIDom);
   }
 
@@ -774,6 +813,28 @@ public:
     DFSInfoValid = true;
   }
 
+  void setDoms(DomTreeNodeBase<NodeT>* root,
+               std::set<DomTreeNodeBase<NodeT>*> doms) const{
+    root->dominators.insert(doms.begin(), doms.end()); 
+    doms.insert(root); 
+    for(auto& c : root->getChildren())
+      setDoms(c, doms);
+  }
+
+  void clearDoms(DomTreeNodeBase<NodeT>* root) const{
+    root->dominators = {};
+    for(auto& c : root->getChildren())
+      clearDoms(c);
+  }
+
+  // Updates dominator sets
+  void updateDominators() const{
+    clearDoms(RootNode);
+    setDoms(RootNode, {});
+    SlowQueries = 0;
+    DominatorsValid = true;
+  }
+
   /// recalculate - compute a dominator tree for the given function
   void recalculate(ParentType &Func) {
     Parent = &Func;
@@ -809,6 +870,7 @@ public:
     RootNode = nullptr;
     Parent = nullptr;
     DFSInfoValid = false;
+    DominatorsValid = false;
     SlowQueries = 0;
   }
 
@@ -889,15 +951,27 @@ protected:
     assert(isReachableFromEntry(B));
     assert(isReachableFromEntry(A));
 
-    const unsigned ALevel = A->getLevel();
-    const DomTreeNodeBase<NodeT> *IDom;
+    if(isTree){
+      const unsigned ALevel = A->getLevel();
+      const DomTreeNodeBase<NodeT> *IDom;
 
-    // Don't walk nodes above A's subtree. When we reach A's level, we must
-    // either find A or be in some other subtree not dominated by A.
-    while ((IDom = B->getIDom()) != nullptr && IDom->getLevel() >= ALevel)
-      B = IDom;  // Walk up the tree
+      // Don't walk nodes above A's subtree. When we reach A's level, we must
+      // either find A or be in some other subtree not dominated by A.
+      while ((IDom = B->getIDom()) != nullptr && IDom->getLevel() >= ALevel)
+        B = IDom;  // Walk up the tree
 
-    return B == A;
+      return B == A;
+    }
+
+    std::set< const DomTreeNodeBase<NodeT>* > parents = {B};
+    while (!parents.empty()){
+      for(auto& n : parents){
+        parents.erase(n); 
+        if(A == n) return true; 
+        for(auto& p : n->Parents) parents.insert(p); 
+      }
+    }
+    return false; 
   }
 
   /// Wipe this tree's state without releasing any resources.

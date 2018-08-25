@@ -41,6 +41,7 @@
 #include "llvm/Analysis/ScalarEvolution.h"
 #include "llvm/Analysis/ScalarEvolutionExpander.h"
 #include "llvm/Analysis/ScalarEvolutionExpressions.h"
+#include "llvm/Analysis/TapirTaskInfo.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/Analysis/ValueTracking.h"
@@ -82,6 +83,7 @@
 #include "llvm/Transforms/Utils/Local.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
 #include "llvm/Transforms/Utils/SimplifyIndVar.h"
+#include "llvm/Transforms/Utils/TapirUtils.h"
 #include <cassert>
 #include <cstdint>
 #include <utility>
@@ -140,6 +142,7 @@ class IndVarSimplify {
   const DataLayout &DL;
   TargetLibraryInfo *TLI;
   const TargetTransformInfo *TTI;
+  TaskInfo *TI;
 
   SmallVector<WeakTrackingVH, 16> DeadInsts;
 
@@ -169,8 +172,8 @@ class IndVarSimplify {
 public:
   IndVarSimplify(LoopInfo *LI, ScalarEvolution *SE, DominatorTree *DT,
                  const DataLayout &DL, TargetLibraryInfo *TLI,
-                 TargetTransformInfo *TTI)
-      : LI(LI), SE(SE), DT(DT), DL(DL), TLI(TLI), TTI(TTI) {}
+                 TargetTransformInfo *TTI, TaskInfo *TI)
+      : LI(LI), SE(SE), DT(DT), DL(DL), TLI(TLI), TTI(TTI), TI(TI) {}
 
   bool run(Loop *L);
 };
@@ -2015,6 +2018,12 @@ bool IndVarSimplify::simplifyAndExtend(Loop *L,
 //  linearFunctionTestReplace and its kin. Rewrite the loop exit condition.
 //===----------------------------------------------------------------------===//
 
+static Instruction *getExitingTerminator(Loop *L, TaskInfo *TI) {
+  if (getTaskIfTapirLoop(L, TI))
+    return L->getLoopLatch()->getTerminator();
+  return L->getExitingBlock()->getTerminator();
+}
+
 /// Given an Value which is hoped to be part of an add recurance in the given
 /// loop, return the associated Phi node if so.  Otherwise, return null.  Note
 /// that this is less general than SCEVs AddRec checking.  
@@ -3008,6 +3017,10 @@ bool IndVarSimplify::run(Loop *L) {
   // transform them to use integer recurrences.
   Changed |= rewriteNonIntegerIVs(L);
 
+  const SCEV *BackedgeTakenCount = SE->getBackedgeTakenCount(L);
+  if (getTaskIfTapirLoop(L, TI))
+    BackedgeTakenCount = SE->getExitCount(L, L->getLoopLatch());
+
   // Create a rewriter object which we'll use to transform the code with.
   SCEVExpander Rewriter(*SE, DL, "indvars");
 #ifndef NDEBUG
@@ -3161,7 +3174,10 @@ PreservedAnalyses IndVarSimplifyPass::run(Loop &L, LoopAnalysisManager &AM,
   Function *F = L.getHeader()->getParent();
   const DataLayout &DL = F->getParent()->getDataLayout();
 
-  IndVarSimplify IVS(&AR.LI, &AR.SE, &AR.DT, DL, &AR.TLI, &AR.TTI);
+  const auto &FAM =
+    AM.getResult<FunctionAnalysisManagerLoopProxy>(L, AR).getManager();
+  IndVarSimplify IVS(&AR.LI, &AR.SE, &AR.DT, DL, &AR.TLI, &AR.TTI,
+                     FAM.getCachedResult<TaskAnalysis>(*F));
   if (!IVS.run(&L))
     return PreservedAnalyses::all();
 
@@ -3190,15 +3206,17 @@ struct IndVarSimplifyLegacyPass : public LoopPass {
     auto *TLI = TLIP ? &TLIP->getTLI(*L->getHeader()->getParent()) : nullptr;
     auto *TTIP = getAnalysisIfAvailable<TargetTransformInfoWrapperPass>();
     auto *TTI = TTIP ? &TTIP->getTTI(*L->getHeader()->getParent()) : nullptr;
+    auto *TI = &getAnalysis<TaskInfoWrapperPass>().getTaskInfo();
     const DataLayout &DL = L->getHeader()->getModule()->getDataLayout();
 
-    IndVarSimplify IVS(LI, SE, DT, DL, TLI, TTI);
+    IndVarSimplify IVS(LI, SE, DT, DL, TLI, TTI, TI);
     return IVS.run(L);
   }
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesCFG();
     getLoopAnalysisUsage(AU);
+    AU.addRequired<TaskInfoWrapperPass>();
   }
 };
 
@@ -3209,6 +3227,7 @@ char IndVarSimplifyLegacyPass::ID = 0;
 INITIALIZE_PASS_BEGIN(IndVarSimplifyLegacyPass, "indvars",
                       "Induction Variable Simplification", false, false)
 INITIALIZE_PASS_DEPENDENCY(LoopPass)
+INITIALIZE_PASS_DEPENDENCY(TaskInfoWrapperPass)
 INITIALIZE_PASS_END(IndVarSimplifyLegacyPass, "indvars",
                     "Induction Variable Simplification", false, false)
 

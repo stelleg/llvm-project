@@ -25,6 +25,7 @@
 #include "llvm/Analysis/ScalarEvolution.h"
 #include "llvm/Analysis/ScalarEvolutionAliasAnalysis.h"
 #include "llvm/Analysis/ScalarEvolutionExpressions.h"
+#include "llvm/Analysis/TapirTaskInfo.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/Analysis/ValueTracking.h"
 #include "llvm/IR/DIBuilder.h"
@@ -173,6 +174,7 @@ void llvm::getLoopAnalysisUsage(AnalysisUsage &AU) {
   AU.addPreserved<ScalarEvolutionWrapperPass>();
   // FIXME: When all loop passes preserve MemorySSA, it can be required and
   // preserved here instead of the individual handling in each pass.
+  AU.addRequired<TaskInfoWrapperPass>();
 }
 
 /// Manually defined generic "LoopPass" dependency initialization. This is used
@@ -194,6 +196,7 @@ void llvm::initializeLoopPassPass(PassRegistry &Registry) {
   INITIALIZE_PASS_DEPENDENCY(SCEVAAWrapperPass)
   INITIALIZE_PASS_DEPENDENCY(ScalarEvolutionWrapperPass)
   INITIALIZE_PASS_DEPENDENCY(MemorySSAWrapperPass)
+  INITIALIZE_PASS_DEPENDENCY(TaskInfoWrapperPass)
 }
 
 /// Create MDNode for input string.

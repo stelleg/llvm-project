@@ -175,6 +175,7 @@ void llvm::getLoopAnalysisUsage(AnalysisUsage &AU) {
   // FIXME: When all loop passes preserve MemorySSA, it can be required and
   // preserved here instead of the individual handling in each pass.
   AU.addRequired<TaskInfoWrapperPass>();
+  AU.addPreserved<TaskInfoWrapperPass>();
 }
 
 /// Manually defined generic "LoopPass" dependency initialization. This is used

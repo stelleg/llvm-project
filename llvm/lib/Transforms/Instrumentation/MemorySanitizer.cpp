@@ -4655,7 +4655,9 @@ bool MemorySanitizer::sanitizeFunction(Function &F, TargetLibraryInfo &TLI) {
       .addAttribute(Attribute::ReadNone)
       .addAttribute(Attribute::WriteOnly)
       .addAttribute(Attribute::ArgMemOnly)
-      .addAttribute(Attribute::Speculatable);
+      .addAttribute(Attribute::Speculatable)
+      .addAttribute(Attribute::InaccessibleMemOnly)
+      .addAttribute(Attribute::InaccessibleMemOrArgMemOnly);
   F.removeAttributes(AttributeList::FunctionIndex, B);
 
   return Visitor.runOnFunction();

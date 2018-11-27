@@ -23,6 +23,7 @@ add_llvm_component_library(LLVMAnalysis
   CodeMetrics.cpp
   ConstantFolding.cpp
   DDG.cpp
+  DataRaceFreeAliasAnalysis.cpp
   Delinearization.cpp
   DemandedBits.cpp
   DependenceAnalysis.cpp

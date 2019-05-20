@@ -129,6 +129,7 @@ template <class NodeT> class DomTreeNodeBase {
   }
 
   void setIDom(DomTreeNodeBase *NewIDom) {
+    assert(NewIDom); 
     if (Parents.empty()) Parents = {NewIDom};  
     if (Parents[0] == NewIDom) return;
 
@@ -256,7 +257,7 @@ protected:
   SmallVector<NodeT *, IsPostDom ? 4 : 1> Roots;
 
   // We keep the special case of trees to take optimized code paths, TODO: necessary?
-  bool isTree = true; 
+  bool isTree = false; 
 
   using DomTreeNodeMapType =
      DenseMap<NodeT *, std::unique_ptr<DomTreeNodeBase<NodeT>>>;
@@ -907,11 +908,10 @@ protected:
 
     std::set< const DomTreeNodeBase<NodeT>* > parents = {B};
     while (!parents.empty()){
-      for(auto& n : parents){
-        parents.erase(n); 
-        if(A == n) return true; 
-        for(auto& p : n->Parents) parents.insert(p); 
-      }
+      auto p = *parents.begin(); 
+      parents.erase(p); 
+      if(A == p) return true; 
+      for(auto gp : p->Parents) parents.insert(gp); 
     }
     return false; 
   }

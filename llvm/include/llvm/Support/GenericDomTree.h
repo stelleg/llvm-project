@@ -62,7 +62,7 @@ template <class NodeT> class DomTreeNodeBase {
 
   NodeT *TheBB;
   //DomTreeNodeBase *IDom;
-  std::vector<DomTreeNodeBase *> Parents;
+  std::vector<DomTreeNodeBase *> IDoms;
   unsigned Level;
   std::vector<DomTreeNodeBase *> Children;
   std::set<DomTreeNodeBase *> dominators; 
@@ -73,13 +73,13 @@ template <class NodeT> class DomTreeNodeBase {
   DomTreeNodeBase(NodeT *BB, DomTreeNodeBase *iDom)
       : TheBB(BB), Level(iDom ? iDom->Level + 1 : 0) {
     if(iDom)
-      Parents = {iDom};
+      IDoms = {iDom};
     else
-      Parents = {}; 
+      IDoms = {}; 
   }
 
     DomTreeNodeBase(NodeT *BB, std::vector<DomTreeNodeBase*> parents)
-      : TheBB(BB), Parents(parents), Level(0)  {
+      : TheBB(BB), IDoms(parents), Level(0)  {
   }
 
   using iterator = typename std::vector<DomTreeNodeBase *>::iterator;
@@ -93,13 +93,13 @@ template <class NodeT> class DomTreeNodeBase {
 
   NodeT *getBlock() const { return TheBB; }
   DomTreeNodeBase *getIDom() const { 
-    if(Parents.empty()) return nullptr; 
-    else return Parents[0]; 
+    if(IDoms.empty()) return nullptr; 
+    else return IDoms[0]; 
   }
   unsigned getLevel() const { return Level; }
 
   const std::vector<DomTreeNodeBase *> &getChildren() const { return Children; }
-  const std::vector<DomTreeNodeBase *> &getParents() const { return Parents; }
+  const std::vector<DomTreeNodeBase *> &getIDoms() const { return IDoms; }
 
   std::unique_ptr<DomTreeNodeBase> addChild(
       std::unique_ptr<DomTreeNodeBase> C) {
@@ -107,14 +107,14 @@ template <class NodeT> class DomTreeNodeBase {
     return C;
   }
 
-  std::unique_ptr<DomTreeNodeBase> addParent(
+  std::unique_ptr<DomTreeNodeBase> addIDom(
       std::unique_ptr<DomTreeNodeBase> P) {
-    Parents.push_back(P.get());
+    IDoms.push_back(P.get());
     return P; 
   }
 
   size_t getNumChildren() const { return Children.size(); }
-  size_t getNumParents() const { return Parents.size(); }
+  size_t getNumIDoms() const { return IDoms.size(); }
 
   void clearAllChildren() { Children.clear(); }
 
@@ -140,18 +140,18 @@ template <class NodeT> class DomTreeNodeBase {
 
   void setIDom(DomTreeNodeBase *NewIDom) {
     assert(NewIDom); 
-    if (Parents.empty()) Parents = {NewIDom};  
-    if (Parents[0] == NewIDom) return;
+    if (IDoms.empty()) IDoms = {NewIDom};  
+    if (IDoms[0] == NewIDom) return;
 
-    auto I = find(Parents[0]->Children, this);
-    assert(I != Parents[0]->Children.end() &&
+    auto I = find(IDoms[0]->Children, this);
+    assert(I != IDoms[0]->Children.end() &&
            "Not in immediate dominator children set!");
     // I am no longer your child...
-    Parents[0]->Children.erase(I);
+    IDoms[0]->Children.erase(I);
 
     // Switch to new dominator
-    Parents[0] = NewIDom;
-    Parents[0]->Children.push_back(this);
+    IDoms[0] = NewIDom;
+    IDoms[0]->Children.push_back(this);
 
     UpdateLevel();
   }
@@ -171,8 +171,8 @@ private:
   }
 
   void UpdateLevel() {
-    assert(!Parents.empty());
-    DomTreeNodeBase *IDom = Parents[0]; 
+    assert(!IDoms.empty());
+    DomTreeNodeBase *IDom = IDoms[0]; 
 
     if (Level == IDom->Level + 1) return;
 
@@ -183,8 +183,8 @@ private:
       Current->Level = Current->getIDom()->Level + 1;
 
       for (DomTreeNodeBase *C : *Current) {
-        assert(!C->Parents.empty());
-        if (C->Level != C->Parents[0]->Level + 1) WorkStack.push_back(C);
+        assert(!C->IDoms.empty());
+        if (C->Level != C->IDoms[0]->Level + 1) WorkStack.push_back(C);
       }
     }
   }
@@ -921,7 +921,7 @@ protected:
       auto p = *parents.begin(); 
       parents.erase(p); 
       if(A == p) return true; 
-      for(auto gp : p->Parents) parents.insert(gp); 
+      for(auto gp : p->IDoms) parents.insert(gp); 
     }
     return false; 
   }

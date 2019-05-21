@@ -66,7 +66,8 @@ struct SemiNCAInfo {
     unsigned Parent = 0;
     unsigned Semi = 0;
     NodePtr Label = nullptr;
-    NodePtr IDom = nullptr;
+    //NodePtr IDom = nullptr;
+    SmallVector<NodePtr, 2> Parents; 
     SmallVector<NodePtr, 2> ReverseChildren;
   };
 
@@ -127,7 +128,14 @@ struct SemiNCAInfo {
     auto InfoIt = NodeToInfo.find(BB);
     if (InfoIt == NodeToInfo.end()) return nullptr;
 
-    return InfoIt->second.IDom;
+    return InfoIt->second.Parents[0];
+  }
+
+  SmallVector<NodePtr, 2> getParents(NodePtr BB) const {
+    auto InfoIt = NodeToInfo.find(BB);
+    if (InfoIt == NodeToInfo.end()) return {};
+
+    return InfoIt->second.Parents;
   }
 
   TreeNodePtr getNodeForBlock(NodePtr BB, DomTreeT &DT) {
@@ -135,14 +143,21 @@ struct SemiNCAInfo {
 
     // Haven't calculated this node yet?  Get or calculate the node for the
     // immediate dominator.
-    NodePtr IDom = getIDom(BB);
+    //NodePtr IDom = getIDom(BB);
+    auto Ps = getParents(BB); 
 
-    assert(IDom || DT.DomTreeNodes[nullptr]);
-    TreeNodePtr IDomNode = getNodeForBlock(IDom, DT);
+    assert(!Ps.empty() || DT.DomTreeNodes[nullptr]);
+    SmallVector<TreeNodePtr, 4> PNodes; 
+    for(auto p : Ps)
+      PNodes.push_back(getNodeForBlock(p, DT)); 
+      //TreeNodePtr IDomNode = getNodeForBlock(IDom, DT);
 
     // Add a new tree node for this NodeT, and link it as a child of
-    // IDomNode
-    return DT.createChild(BB, IDomNode);
+    auto C = llvm::make_unique<DomTreeNodeBase<NodeT>>(BB, PNodes);
+    DT.DomTreeNodes[BB] = std::move(C);  
+    for(auto pn : PNodes) 
+      pn->addChild(std::move(C));
+    return C.get(); 
   }
 
   static bool AlwaysDescend(NodePtr, NodePtr) { return true; }
@@ -274,7 +289,7 @@ struct SemiNCAInfo {
     for (unsigned i = 1; i < NextDFSNum; ++i) {
       const NodePtr V = NumToNode[i];
       auto &VInfo = NodeToInfo[V];
-      VInfo.IDom = NumToNode[VInfo.Parent];
+      VInfo.Parents = {NumToNode[VInfo.Parent]};
     }
 
     // Step #1: Calculate the semidominators of all vertices.
@@ -307,11 +322,11 @@ struct SemiNCAInfo {
       const NodePtr W = NumToNode[i];
       auto &WInfo = NodeToInfo[W];
       const unsigned SDomNum = NodeToInfo[NumToNode[WInfo.Semi]].DFSNum;
-      NodePtr WIDomCandidate = WInfo.IDom;
+      NodePtr WIDomCandidate = WInfo.Parents[0];
       while (NodeToInfo[WIDomCandidate].DFSNum > SDomNum)
-        WIDomCandidate = NodeToInfo[WIDomCandidate].IDom;
+        WIDomCandidate = NodeToInfo[WIDomCandidate].Parents[0];
 
-      WInfo.IDom = WIDomCandidate;
+      WInfo.Parents = {WIDomCandidate};
     }
   }
 
@@ -596,7 +611,7 @@ struct SemiNCAInfo {
 
   void attachNewSubtree(DomTreeT& DT, const TreeNodePtr AttachTo) {
     // Attach the first unreachable block to AttachTo.
-    NodeToInfo[NumToNode[1]].IDom = AttachTo->getBlock();
+    NodeToInfo[NumToNode[1]].Parents = {AttachTo->getBlock()};
     // Loop over all of the discovered blocks in the function...
     for (size_t i = 1, e = NumToNode.size(); i != e; ++i) {
       NodePtr W = NumToNode[i];
@@ -616,12 +631,12 @@ struct SemiNCAInfo {
   }
 
   void reattachExistingSubtree(DomTreeT &DT, const TreeNodePtr AttachTo) {
-    NodeToInfo[NumToNode[1]].IDom = AttachTo->getBlock();
+    NodeToInfo[NumToNode[1]].Parents = {AttachTo->getBlock()};
     for (size_t i = 1, e = NumToNode.size(); i != e; ++i) {
       const NodePtr N = NumToNode[i];
       const TreeNodePtr TN = DT.getNode(N);
       assert(TN);
-      const TreeNodePtr NewIDom = DT.getNode(NodeToInfo[N].IDom);
+      const TreeNodePtr NewIDom = DT.getNode(NodeToInfo[N].Parents[0]);
       TN->setIDom(NewIDom);
     }
   }

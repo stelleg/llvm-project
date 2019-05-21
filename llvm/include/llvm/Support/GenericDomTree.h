@@ -77,6 +77,10 @@ template <class NodeT> class DomTreeNodeBase {
       Parents = {}; 
   }
 
+    DomTreeNodeBase(NodeT *BB, std::vector<DomTreeNodeBase*> parents)
+      : TheBB(BB), Parents(parents), Level(0)  {
+  }
+
   using iterator = typename std::vector<DomTreeNodeBase *>::iterator;
   using const_iterator =
       typename std::vector<DomTreeNodeBase *>::const_iterator;
@@ -100,6 +104,12 @@ template <class NodeT> class DomTreeNodeBase {
       std::unique_ptr<DomTreeNodeBase> C) {
     Children.push_back(C.get());
     return C;
+  }
+
+  std::unique_ptr<DomTreeNodeBase> addParent(
+      std::unique_ptr<DomTreeNodeBase> P) {
+    Parents.push_back(P.get());
+    return P; 
   }
 
   size_t getNumChildren() const { return Children.size(); }

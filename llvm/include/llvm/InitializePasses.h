@@ -103,7 +103,6 @@ void initializeCallGraphViewerPass(PassRegistry&);
 void initializeCallGraphWrapperPassPass(PassRegistry&);
 void initializeCallSiteSplittingLegacyPassPass(PassRegistry&);
 void initializeCalledValuePropagationLegacyPassPass(PassRegistry &);
-void initializeCilkSanitizerPass(PassRegistry&);
 void initializeCodeGenPreparePass(PassRegistry&);
 void initializeComprehensiveStaticInstrumentationPass(PassRegistry&);
 void initializeConstantHoistingLegacyPassPass(PassRegistry&);

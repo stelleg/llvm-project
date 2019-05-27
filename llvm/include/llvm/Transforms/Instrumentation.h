@@ -203,9 +203,6 @@ struct SanitizerCoverageOptions {
 ModulePass *createSanitizerCoverageModulePass(
     const SanitizerCoverageOptions &Options = SanitizerCoverageOptions());
 
-// Insert CilkSanitizer (Cilk determinacy race detection) instrumentation
-ModulePass *createCilkSanitizerPass();
-
 // Options for comprehensive static instrumentation
 struct CSIOptions {
   bool InstrumentFuncEntryExit = true;

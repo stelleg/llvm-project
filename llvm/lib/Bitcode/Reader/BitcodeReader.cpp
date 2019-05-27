@@ -1187,8 +1187,6 @@ static uint64_t getRawAttributeMask(Attribute::AttrKind Val) {
   case Attribute::ShadowCallStack: return 1ULL << 59;
   case Attribute::SpeculativeLoadHardening:
     return 1ULL << 60;
-  case Attribute::SanitizeCilk:    return 1ULL << 61;
-  case Attribute::Stealable:       return 1ULL << 62;
   case Attribute::Dereferenceable:
     llvm_unreachable("dereferenceable attribute not supported in raw format");
     break;
@@ -1401,16 +1399,12 @@ static Attribute::AttrKind getAttrFromCode(uint64_t Code) {
     return Attribute::SafeStack;
   case bitc::ATTR_KIND_SHADOWCALLSTACK:
     return Attribute::ShadowCallStack;
-  case bitc::ATTR_KIND_STEALABLE:
-    return Attribute::Stealable;
   case bitc::ATTR_KIND_STRICT_FP:
     return Attribute::StrictFP;
   case bitc::ATTR_KIND_STRUCT_RET:
     return Attribute::StructRet;
   case bitc::ATTR_KIND_SANITIZE_ADDRESS:
     return Attribute::SanitizeAddress;
-  case bitc::ATTR_KIND_SANITIZE_CILK:
-    return Attribute::SanitizeCilk;
   case bitc::ATTR_KIND_SANITIZE_HWADDRESS:
     return Attribute::SanitizeHWAddress;
   case bitc::ATTR_KIND_SANITIZE_THREAD:

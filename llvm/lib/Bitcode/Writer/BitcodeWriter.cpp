@@ -687,16 +687,12 @@ static uint64_t getAttrKindEncoding(Attribute::AttrKind Kind) {
     return bitc::ATTR_KIND_SAFESTACK;
   case Attribute::ShadowCallStack:
     return bitc::ATTR_KIND_SHADOWCALLSTACK;
-  case Attribute::Stealable:
-    return bitc::ATTR_KIND_STEALABLE;
   case Attribute::StrictFP:
     return bitc::ATTR_KIND_STRICT_FP;
   case Attribute::StructRet:
     return bitc::ATTR_KIND_STRUCT_RET;
   case Attribute::SanitizeAddress:
     return bitc::ATTR_KIND_SANITIZE_ADDRESS;
-  case Attribute::SanitizeCilk:
-    return bitc::ATTR_KIND_SANITIZE_CILK;
   case Attribute::SanitizeHWAddress:
     return bitc::ATTR_KIND_SANITIZE_HWADDRESS;
   case Attribute::SanitizeThread:

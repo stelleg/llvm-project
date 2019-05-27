@@ -597,8 +597,7 @@ bool ShrinkWrap::isShrinkWrapEnabled(const MachineFunction &MF) {
            !(MF.getFunction().hasFnAttribute(Attribute::SanitizeAddress) ||
              MF.getFunction().hasFnAttribute(Attribute::SanitizeThread) ||
              MF.getFunction().hasFnAttribute(Attribute::SanitizeMemory) ||
-             MF.getFunction().hasFnAttribute(Attribute::SanitizeHWAddress) ||
-             MF.getFunction().hasFnAttribute(Attribute::SanitizeCilk));
+             MF.getFunction().hasFnAttribute(Attribute::SanitizeHWAddress)); 
   // If EnableShrinkWrap is set, it takes precedence on whatever the
   // target sets. The rational is that we assume we want to test
   // something related to shrink-wrapping.

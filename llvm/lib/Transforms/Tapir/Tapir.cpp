@@ -14,6 +14,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/Transforms/Tapir.h"
+#include "llvm/Transforms/Tapir/TapirTypes.h"
+#include "llvm/Transforms/Tapir/LoweringUtils.h"
 #include "llvm-c/Initialization.h"
 #include "llvm-c/Transforms/Tapir.h"
 #include "llvm/Analysis/Passes.h"
@@ -34,12 +36,10 @@ void LLVMInitializeTapirOpts(LLVMPassRegistryRef R) {
   initializeTapirOpts(*unwrap(R));
 }
 
-/*
-void LLVMAddLoopSpawningPass(LLVMPassManagerRef PM, TapirTargetType tapirType) {
-  unwrap(PM)->add(createLoopSpawningPass(tapirType));
+void LLVMAddLoopSpawningPass(LLVMPassManagerRef PM) {
+  unwrap(PM)->add(createLoopSpawningPass(nullptr));
 }
 
-void LLVMAddLowerTapirToTargetPass(LLVMPassManagerRef PM, TapirTargetType tapirType) {
-  unwrap(PM)->add(createLowerTapirToTargetPass(tapirType));
+void LLVMAddLowerTapirToTargetPass(LLVMPassManagerRef PM) {
+  unwrap(PM)->add(createLowerTapirToTargetPass(nullptr));
 }
-*/

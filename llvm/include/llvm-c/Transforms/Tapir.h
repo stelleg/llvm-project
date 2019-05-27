@@ -21,6 +21,7 @@
 #define LLVM_C_TRANSFORMS_TAPIR_H
 
 #include "llvm-c/Types.h"
+#include "llvm/Transforms/Tapir/TapirTypes.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,10 +35,10 @@ extern "C" {
  */
 
 /** See llvm::createLoopSpawningPass function. */
-//void LLVMAddLoopSpawningPass(LLVMPassManagerRef PM, TapirTargetType tapirTarget);
+void LLVMAddLoopSpawningPass(LLVMPassManagerRef PM);
 
 /** See llvm::createLowerTapirToTargetPass function. */
-//void LLVMAddLowerTapirToTargetPass(LLVMPassManagerRef PM, TapirTargetType tapirTarget);
+void LLVMAddLowerTapirToTargetPass(LLVMPassManagerRef PM);
 
 /**
  * @}

@@ -63,7 +63,7 @@ define i32 @test3_yes(i8* %p) nounwind {
   ret i32 %t
 }
 
-; CHECK: define i32 @test3_no(i8* nocapture %p) #5 {
+; CHECK: define i32 @test3_no(i8* nocapture %p) #6 {
 define i32 @test3_no(i8* %p) nounwind {
   %t = va_arg i8* %p, i32, !tbaa !2
   ret i32 %t

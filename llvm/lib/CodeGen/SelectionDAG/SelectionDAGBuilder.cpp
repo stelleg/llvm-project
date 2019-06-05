@@ -7052,6 +7052,7 @@ void SelectionDAGBuilder::visitIntrinsicCall(const CallInst &I,
     //
     // Lower the starting point of a sync region to a no-op.
   case Intrinsic::syncregion_start:
+    // Lower the starting point of a Tapir sync region to a no-op.
     return nullptr;
   }
 }

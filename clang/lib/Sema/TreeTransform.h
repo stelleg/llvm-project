@@ -1356,11 +1356,16 @@ public:
   /// By default, performs semantic analysis to build the new statement.
   /// Subclasses may override this routine to provide different behavior.
   StmtResult RebuildCilkForStmt(SourceLocation ForLoc, SourceLocation LParenLoc,
-                                Stmt *Init, Sema::ConditionResult Cond,
+                                Stmt *Init, Stmt *Limit,
+                                Sema::ConditionResult InitCond, Stmt *Begin,
+                                Stmt *End,  Sema::ConditionResult Cond,
                                 Sema::FullExprArg Inc, SourceLocation RParenLoc,
                                 VarDecl *LoopVar, Stmt *Body) {
-    return getSema().ActOnCilkForStmt(ForLoc, LParenLoc, Init, Cond,
-                                      Inc, RParenLoc, Body, LoopVar);
+    return getSema().ActOnCilkForStmt(ForLoc, LParenLoc, Init,
+                                      cast_or_null<DeclStmt>(Limit), InitCond,
+                                      cast_or_null<DeclStmt>(Begin),
+                                      cast_or_null<DeclStmt>(End), Cond, Inc,
+                                      RParenLoc, Body, LoopVar);
   }
 
   /// Build a new goto statement.

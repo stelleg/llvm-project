@@ -78,8 +78,8 @@ template <class NodeT> class DomTreeNodeBase {
 
   using iterator = typename SmallVector<DomTreeNodeBase *, 4>::iterator;
 
-  DomTreeNodeBase(NodeT *BB, SmallVector<DomTreeNodeBase*, 2> parents)
-      : TheBB(BB), IDoms(parents), Level(0)  {
+    DomTreeNodeBase(NodeT *BB, SmallVector<DomTreeNodeBase*, 2> parents)
+      : TheBB(BB), IDoms(parents), Level(IDoms.empty() ? IDoms[0]->Level + 1 : 0)  {
   }
 
   using const_iterator =
@@ -181,7 +181,7 @@ private:
 
   void UpdateLevel() {
     assert(!IDoms.empty());
-    DomTreeNodeBase *IDom = IDoms[0]; 
+    DomTreeNodeBase *IDom = getIDom(); 
 
     if (Level == IDom->Level + 1) return;
 
@@ -302,6 +302,7 @@ protected:
         RootNode(Arg.RootNode),
         Parent(Arg.Parent),
         DFSInfoValid(Arg.DFSInfoValid),
+        DominatorsValid(Arg.DominatorsValid),
         SlowQueries(Arg.SlowQueries) {
     Arg.wipe();
   }
@@ -312,6 +313,7 @@ protected:
     RootNode = RHS.RootNode;
     Parent = RHS.Parent;
     DFSInfoValid = RHS.DFSInfoValid;
+    DominatorsValid = RHS.DominatorsValid;  
     SlowQueries = RHS.SlowQueries;
     RHS.wipe();
     return *this;
@@ -467,7 +469,8 @@ protected:
     if (A->getIDom() == B) return false;
 
     // A can only dominate B if it is higher in the tree.
-    if (A->getLevel() >= B->getLevel()) return false;
+    if(isTree)
+      if (A->getLevel() >= B->getLevel()) return false;
 
     // Compare the result of the tree walk and the dfs numbers, if expensive
     // checks are enabled.
@@ -481,11 +484,11 @@ protected:
       if (DFSInfoValid)
         return B->DominatedBy(A);
     }
-    else {
+    /*else {
       if(DominatorsValid)
         return B->dominators.find(const_cast<DomTreeNodeBase<NodeT>*>(A)) != 
                B->dominators.end(); 
-    }
+    }*/
 
     // If we end up with too many slow queries, just update the
     // DFS numbers on the theory that we are going to keep querying.
@@ -495,11 +498,13 @@ protected:
         updateDFSNumbers();
         return B->DominatedBy(A);
       }
+      /* TODO: Fix this
       else{
         updateDominators(); 
         return B->dominators.find(const_cast<DomTreeNodeBase<NodeT>*>(A)) != 
                B->dominators.end(); 
       }
+      */
     }
 
     return dominatedBySlowTreeWalk(A, B);
@@ -724,6 +729,7 @@ protected:
     assert(Node->isLeaf() && "Node is not a leaf node.");
 
     DFSInfoValid = false;
+    DominatorsValid = false; 
 
     // Remove node from immediate dominator's children list.
     DomTreeNodeBase<NodeT> *IDom = Node->getIDom();
@@ -828,8 +834,9 @@ public:
 
   void setDoms(DomTreeNodeBase<NodeT>* root,
                std::set<DomTreeNodeBase<NodeT>*> doms) const{
-    root->dominators.insert(doms.begin(), doms.end()); 
+    // Every basic block is dominated by itself
     doms.insert(root); 
+    root->dominators.insert(doms.begin(), doms.end()); 
     for(auto& c : root->getChildren())
       setDoms(c, doms);
   }

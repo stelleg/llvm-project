@@ -64,6 +64,10 @@ struct SemiNCAInfo {
     //NodePtr IDom = nullptr;
     SmallVector<NodePtr, 2> IDoms; 
     SmallVector<NodePtr, 2> ReverseChildren;
+    NodePtr getIDom() const{
+      if(IDoms.empty()) return nullptr;
+      return IDoms[0];
+    }; 
   };
 
   // Number to node mapping is 1-based. Initialize the mapping to start with
@@ -169,7 +173,7 @@ struct SemiNCAInfo {
     auto InfoIt = NodeToInfo.find(BB);
     if (InfoIt == NodeToInfo.end()) return nullptr;
 
-    return InfoIt->second.IDoms[0];
+    return InfoIt->second.getIDom();
   }
 
   SmallVector<NodePtr, 2> getIDoms(NodePtr BB) const {
@@ -195,10 +199,11 @@ struct SemiNCAInfo {
 
     // Add a new tree node for this NodeT, and link it as a child of
     auto C = llvm::make_unique<DomTreeNodeBase<NodeT>>(BB, PNodes);
-    DT.DomTreeNodes[BB] = std::move(C);  
     for(auto pn : PNodes) 
-      pn->addChild(std::move(C));
-    return C.get(); 
+      C = pn->addChild(std::move(C));
+    auto CN = C.get();
+    DT.DomTreeNodes[BB] = std::move(C);
+    return CN; 
   }
 
   static bool AlwaysDescend(NodePtr, NodePtr) { return true; }
@@ -345,9 +350,9 @@ struct SemiNCAInfo {
       const NodePtr W = NumToNode[i];
       auto &WInfo = NodeToInfo[W];
       const unsigned SDomNum = NodeToInfo[NumToNode[WInfo.Semi]].DFSNum;
-      NodePtr WIDomCandidate = WInfo.IDoms[0];
+      NodePtr WIDomCandidate = WInfo.getIDom();
       while (NodeToInfo[WIDomCandidate].DFSNum > SDomNum)
-        WIDomCandidate = NodeToInfo[WIDomCandidate].IDoms[0];
+        WIDomCandidate = NodeToInfo[WIDomCandidate].getIDom();
 
       WInfo.IDoms = {WIDomCandidate};
     }
@@ -626,7 +631,7 @@ struct SemiNCAInfo {
       const NodePtr N = NumToNode[i];
       const TreeNodePtr TN = DT.getNode(N);
       assert(TN);
-      const TreeNodePtr NewIDom = DT.getNode(NodeToInfo[N].IDoms[0]);
+      const TreeNodePtr NewIDom = DT.getNode(NodeToInfo[N].getIDom());
       TN->setIDom(NewIDom);
     }
   }

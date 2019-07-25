@@ -1296,6 +1296,19 @@ public:
     void addImplicitSync() {
       if (!InnerSyncScope)
         InnerSyncScope = new ImplicitSyncScope(CGF);
+      }
+    }
+  };
+  llvm::DenseMap<StringRef, SyncRegion*> SyncRegions;
+  SyncRegion *getOrCreateLabeledSyncRegion(const StringRef SV){
+    auto it = SyncRegions.find(SV);
+    if (it != SyncRegions.end()) {
+      return it->second; 
+    } else {
+      SyncRegion* SR = new SyncRegion(*this);
+      SR->setSyncRegionStart(EmitLabeledSyncRegionStart(SV));
+      SyncRegions.insert({SV, SR});    
+      return SR;
     }
   };
 
@@ -3864,6 +3877,18 @@ public:
   llvm::Value *EmitSEHExceptionCode();
   llvm::Value *EmitSEHExceptionInfo();
   llvm::Value *EmitSEHAbnormalTermination();
+
+  // kitsune: Kokkos support  
+  void EmitKokkosConstruct(const CallExpr *CE);
+  void EmitKokkosParallelFor(const CallExpr *CE);
+  void EmitKokkosParallelReduce(const CallExpr *CE);
+  // FIXME?: Should we/can we refactor this away?
+  bool InKokkosConstruct = false;
+
+
+
+
+
 
   /// Emit simple code for OpenMP directives in Simd-only mode.
   void EmitSimpleOMPExecutableDirective(const OMPExecutableDirective &D);

@@ -66,7 +66,9 @@ class Driver {
     GXXMode,
     CPPMode,
     CLMode,
-    FlangMode
+    FlangMode,
+    KokkosMode, // kitsune: custom Kokkos extensions 
+    FleCSIMode  // kitsune: custom FleCSI extensions 
   } Mode;
 
   enum SaveTempsMode {
@@ -170,7 +172,11 @@ public:
       InputList;
 
   /// Whether the driver should follow g++ like behavior.
-  bool CCCIsCXX() const { return Mode == GXXMode; }
+  /// kitsune: Modified to reflect that Kokkos and FleCSI 
+  /// modes also imply GXXMode. 
+  bool CCCIsCXX() const { return Mode == GXXMode    || 
+                                 Mode == KokkosMode ||
+                                 Mode == FleCSIMode; }
 
   /// Whether the driver is just the preprocessor.
   bool CCCIsCPP() const { return Mode == CPPMode; }
@@ -184,6 +190,12 @@ public:
   /// Whether the driver should invoke flang for fortran inputs.
   /// Other modes fall back to calling gcc which in turn calls gfortran.
   bool IsFlangMode() const { return Mode == FlangMode; }
+
+  /// kitsune: Whether the driver should follow custom Kokkos behaviors.
+  bool IsKokkosMode() const { return Mode == KokkosMode; }
+
+  /// kitsune: Whether the driver should follow custom FleCSI behaviors. 
+  bool isFleCSIMode() const { return Mode == FleCSIMode; }
 
   /// Only print tool bindings, don't build any jobs.
   unsigned CCCPrintBindings : 1;

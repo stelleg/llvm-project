@@ -4628,8 +4628,9 @@ RValue CodeGenFunction::EmitCallExpr(const CallExpr *E,
       std::string qname = fdecl->getQualifiedNameAsString();
       if (qname == "Kokkos::parallel_for" || 
           qname == "Kokkos::parallel_reduce") {
-            EmitKokkosConstruct(E);
-            return RValue::get(nullptr);
+	if (EmitKokkosConstruct(E))
+	  return RValue::get(nullptr);
+	// else fall through to standard C++ support. 
       }
     }
   }

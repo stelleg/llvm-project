@@ -3479,3 +3479,30 @@ def StrandMalloc : InheritableAttr {
   let Subjects = SubjectList<[Function]>;
   let Documentation = [StrandMallocDocs];
 }
+
+// +===== kitsune-centric attributes 
+
+def KitsuneTarget : StmtAttr {
+    let Spellings = [CXX11<"kitsune","target">];
+    let Args = [ 
+    	EnumArgument<"KitsuneTargetType", "KitsuneTargetTy", 
+	["qthreads", "realm", "omp", "ptx", "rocm"],
+	["KitsuneTargetQthreads", "KitsuneTargetRealm", "KitsuneTargetOMP", 
+         "KitsuneTargetPTX", "KitsuneTargetROCm"], 0>
+    ];
+    // FIXME -- how do we document this?
+    let Documentation = [Undocumented];
+}
+
+def KitsuneStrategy : StmtAttr {
+  let Spellings = [CXX11<"tapir", "strategy">];
+  let Args = [
+      EnumArgument<"KitsuneStrategyType", "KitsuneStrategyTy",
+      ["gpu", "seq", "dac"],
+      ["KitsuneGPUStrategy", "KitsuneSequentialStrategy", "KitsuneDivAndConquerStrategy"], 0>
+  ];
+  // FIXME -- how do we document this?
+  let Documentation = [Undocumented];
+}
+
+// =====+

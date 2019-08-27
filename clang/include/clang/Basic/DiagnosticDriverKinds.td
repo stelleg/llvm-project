@@ -645,4 +645,31 @@ def err_drv_invalid_or_unsupported_offload_target : Error<
   "invalid or unsupported offload target: '%0'">;
 def err_drv_cuda_offload_only_emit_bc : Error<
   "CUDA offload target is supported only along with --emit-llvm">;
+
+def note_cc1_round_trip_original : Note<"Original arguments in round-trip: %0">;
+def note_cc1_round_trip_generated : Note<"Generated arguments #%0 in round-trip: %1">;
+def remark_cc1_round_trip_generated : Remark<"Generated arguments #%0 in round-trip: %1">, InGroup<RoundTripCC1Args>;
+def err_cc1_round_trip_fail_then_ok : Error<"Original arguments parse failed, then succeeded in round-trip">;
+def err_cc1_round_trip_ok_then_fail : Error<"Generated arguments parse failed in round-trip">;
+def err_cc1_round_trip_mismatch : Error<"Generated arguments do not match in round-trip">;
+
+// +----- kitsune 
+def warn_kokkos_missing_build_params : Warning<
+  "'-fkokkos' mode enabled but build configuration missing details for "
+  "automatic argument generation. Include and linking arguments must be "
+  "provided on command line.">; 
+def warn_cilkrts_missing_build_params : Warning<
+  "'-ftapir=cilk' enabled but build configuration missing details for "
+  "automatic argument generation. Include and linking arguments must be "
+  "provided on command line.">; 
+def warn_qthreads_missing_build_params : Warning<
+  "'-ftapir=qthreads' enabled but build configuration missing details for "
+  "automatic argument generation. Include and linking arguments must be"
+  "provided on command line.">; 
+def warn_realm_missing_build_params : Warning<
+  "'-ftapir=realm' enabled but build configuration missing details for "
+  "automatic argument generation. Include and linking arguments must be "
+  "provided on command line.">; 
+// -----+
+
 }

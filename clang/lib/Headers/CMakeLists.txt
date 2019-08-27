@@ -121,6 +121,7 @@ set(files
   xsaveoptintrin.h
   xsavesintrin.h
   xtestintrin.h
+  kitsune.h
   )
 
 set(cuda_wrapper_files

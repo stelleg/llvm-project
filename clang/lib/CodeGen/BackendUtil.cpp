@@ -791,6 +791,7 @@ void EmitAssemblyHelper::CreatePasses(legacy::PassManager &MPM,
   if (TLII->hasTapirTarget())
     PMBuilder.TapirTarget = TLII->getTapirTarget();
 
+
   PMBuilder.SizeLevel = CodeGenOpts.OptimizeSize;
   PMBuilder.SLPVectorize = CodeGenOpts.VectorizeSLP;
   PMBuilder.LoopVectorize = CodeGenOpts.VectorizeLoop;

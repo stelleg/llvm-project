@@ -4642,6 +4642,32 @@ bool CompilerInvocation::CreateFromArgsImpl(
   if (Res.getFrontendOpts().ProgramAction == frontend::RewriteObjC)
     LangOpts.ObjCExceptions = 1;
 
+  if (Diags.isIgnored(diag::warn_profile_data_misexpect, SourceLocation()))
+    Res.FrontendOpts.LLVMArgs.push_back("-pgo-warn-misexpect");
+
+  // Check if -ftapir is specified
+  if (Arg *A = Args.getLastArg(OPT_ftapir)){
+    StringRef Name = A->getValue();
+    if (Name == "none")
+      LangOpts.Tapir = llvm::TapirTargetType::None;
+    else if (Name == "cilk") 
+      LangOpts.Tapir = llvm::TapirTargetType::Cilk;
+    else if (Name == "openmp")
+      LangOpts.Tapir = llvm::TapirTargetType::OpenMP;
+    else if (Name == "qthreads")
+      LangOpts.Tapir = llvm::TapirTargetType::Qthreads;
+    else if (Name == "cuda")
+      LangOpts.Tapir = llvm::TapirTargetType::Cuda;
+    else if (Name == "serial")
+      LangOpts.Tapir = llvm::TapirTargetType::Serial;
+    else
+      Diags.Report(diag::err_drv_invalid_value) << A->getAsString(Args) <<
+        Name;
+  }
+
+  LangOpts.FunctionAlignment =
+      getLastArgIntValue(Args, OPT_function_alignment, 0, Diags);
+
   if (LangOpts.CUDA) {
     // During CUDA device-side compilation, the aux triple is the
     // triple used for host compilation.

@@ -158,6 +158,7 @@ static KeywordStatus getKeywordStatus(const LangOptions &LangOpts,
     return KS_Future;
   if (LangOpts.isSYCL() && (Flags & KEYSYCL))
     return KS_Enabled;
+  if (LangOpts.Tapir != llvm::TapirTargetType::Last_TapirTargetType && (Flags & KEYTAPIR)) return KS_Enabled;
   return KS_Disabled;
 }
 

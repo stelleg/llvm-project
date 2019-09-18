@@ -155,6 +155,7 @@ static KeywordStatus getKeywordStatus(const LangOptions &LangOpts,
   if (LangOpts.CPlusPlus && (Flags & KEYALLCXX)) return KS_Future;
   if (LangOpts.CPlusPlus && !LangOpts.CPlusPlus20 && (Flags & CHAR8SUPPORT))
     return KS_Future;
+  if (LangOpts.Tapir != llvm::TapirTargetType::Last_TapirTargetType && (Flags & KEYTAPIR)) return KS_Enabled;
   return KS_Disabled;
 }
 

@@ -465,6 +465,10 @@ namespace llvm {
 
   /// Create IR Type Promotion pass. \see TypePromotion.cpp
   FunctionPass *createTypePromotionPass();
+  /// This pass cleans up any remaining Tapir instructions.  Typically this pass
+  /// should have no effect, because Tapir instructions should have been lowered
+  /// already to a particular parallel runtime.
+  FunctionPass *createTapirCleanupPass();
 
 } // End llvm namespace
 

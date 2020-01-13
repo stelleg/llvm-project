@@ -958,8 +958,6 @@ ModulePassManager PassBuilder::buildModuleOptimizationPipeline(
     OptimizePM.addPass(JumpThreadingPass());
     OptimizePM.addPass(CorrelatedValuePropagationPass());
     OptimizePM.addPass(InstCombinePass());
-    if (EnableDRFAA)
-      OptimizePM.addPass(DRFScopedNoAliasPass());
   }
 
   for (auto &C : VectorizerStartEPCallbacks)
@@ -1140,9 +1138,6 @@ PassBuilder::buildPerModuleDefaultPipeline(OptimizationLevel Level,
 
   ModulePassManager MPM(DebugLogging);
   bool TapirHasBeenLowered = !LowerTapir;
-
-  if (EnableDRFAA)
-    MPM.addPass(createModuleToFunctionPassAdaptor(DRFScopedNoAliasPass()));
 
   // Force any function attributes we want the rest of the pipeline to observe.
   MPM.addPass(ForceFunctionAttrsPass());

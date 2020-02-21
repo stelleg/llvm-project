@@ -4462,6 +4462,9 @@ public:
                          CES_AllowExceptionVariables),
   };
 
+  StmtResult ActOnSyncStmt(SourceLocation SyncLoc, StringRef sv);
+  StmtResult ActOnSpawnStmt(SourceLocation SpawnLoc, StringRef sv, Stmt *S);
+
   VarDecl *getCopyElisionCandidate(QualType ReturnType, Expr *E,
                                    CopyElisionSemanticsKind CESK);
   bool isCopyElisionCandidate(QualType ReturnType, const VarDecl *VD,

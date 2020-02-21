@@ -2580,12 +2580,17 @@ enum CXCursorKind {
    */
   CXCursor_CilkSyncStmt                  = 290,
 
+
+
   /** A _Cilk_for statement.
    */
   CXCursor_CilkForStmt                   = 291,
 
-  CXCursor_LastStmt = CXCursor_CilkForStmt,
+  CXCursor_SpawnStmt                 = 285,
+  CXCursor_SyncStmt                 = 286,
 
+
+  CXCursor_LastStmt = CXCursor_SyncStmt,
   /**
    * Cursor that represents the translation unit itself.
    *

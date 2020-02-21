@@ -1953,6 +1953,10 @@ public:
       // FixedPointLiteral
       EXPR_FIXEDPOINT_LITERAL,
 
+			// Kitsune
+      STMT_SPAWN,
+      STMT_SYNC,
+
       // Cilk Plus
       STMT_CILKSPAWN,
       EXPR_CILKSPAWN,

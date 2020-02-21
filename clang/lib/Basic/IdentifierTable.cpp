@@ -26,7 +26,9 @@
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
+#include "clang/Basic/Tapir.h"
 #include <cassert>
+#include "llvm/Transforms/Tapir/TapirTypes.h"
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -107,6 +109,7 @@ namespace {
     KEYCXX20      = 0x200000,
     KEYOPENCLCXX  = 0x400000,
     KEYMSCOMPAT   = 0x800000,
+    KEYTAPIR      = 0x1000000,
     KEYALLCXX = KEYCXX | KEYCXX11 | KEYCXX20,
     KEYALL = (0xffffff & ~KEYNOMS18 &
               ~KEYNOOPENCL) // KEYNOMS18 and KEYNOOPENCL are used to exclude.
@@ -155,7 +158,7 @@ static KeywordStatus getKeywordStatus(const LangOptions &LangOpts,
   if (LangOpts.CPlusPlus && (Flags & KEYALLCXX)) return KS_Future;
   if (LangOpts.CPlusPlus && !LangOpts.CPlusPlus20 && (Flags & CHAR8SUPPORT))
     return KS_Future;
-  if (LangOpts.Tapir != llvm::TapirTargetType::Last_TapirTargetType && (Flags & KEYTAPIR)) return KS_Enabled;
+  if (LangOpts.Tapir != TapirTargetID::Last_TapirTargetID && (Flags & KEYTAPIR)) return KS_Enabled;
   return KS_Disabled;
 }
 

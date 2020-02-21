@@ -26,7 +26,9 @@
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
+#include "clang/Basic/Tapir.h"
 #include <cassert>
+#include "llvm/Transforms/Tapir/TapirTypes.h"
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -108,6 +110,7 @@ namespace {
     KEYOPENCLCXX  = 0x400000,
     KEYMSCOMPAT   = 0x800000,
     KEYSYCL       = 0x1000000,
+    KEYTAPIR      = 0x2000000,
     KEYALLCXX = KEYCXX | KEYCXX11 | KEYCXX20,
     KEYALL = (0x1ffffff & ~KEYNOMS18 &
               ~KEYNOOPENCL) // KEYNOMS18 and KEYNOOPENCL are used to exclude.

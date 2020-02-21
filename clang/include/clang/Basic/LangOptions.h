@@ -23,6 +23,7 @@
 #include "clang/Basic/TargetCXXABI.h"
 #include "clang/Basic/Visibility.h"
 #include "llvm/ADT/FloatingPointMode.h"
+#include "clang/Basic/Tapir.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Triple.h"
 #include <string>
@@ -300,7 +301,7 @@ public:
     CSI_TapirLoopEnd  
   };
 public:
-  llvm::TapirTargetType Tapir = llvm::TapirTargetType::Last_TapirTargetType;
+  TapirTargetID Tapir = TapirTargetID::Last_TapirTargetID;
 
   enum CilktoolKind {
     // No Cilktool

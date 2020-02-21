@@ -5040,7 +5040,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
         getToolChain().getTriple().getOS() != llvm::Triple::UnknownOS &&
         !getToolChain().getTriple().isMacOSX())
       D.Diag(diag::err_drv_cilk_unsupported);
-  Args.AddLastArg(CmdArgs, options::OPT_ftapir);
+  Args.AddLastArg(CmdArgs, options::OPT_ftapir_EQ);
   Args.AddLastArg(CmdArgs, options::OPT_fkokkos);
   Args.AddLastArg(CmdArgs, options::OPT_fflecsi);
 

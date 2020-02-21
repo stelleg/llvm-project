@@ -30,6 +30,7 @@
 #include "clang/AST/StmtCXX.h"
 #include "clang/AST/StmtObjC.h"
 #include "clang/AST/StmtOpenMP.h"
+#include "clang/AST/StmtTapir.h"
 #include "clang/Sema/Designator.h"
 #include "clang/Sema/Lookup.h"
 #include "clang/Sema/Ownership.h"
@@ -1409,6 +1410,14 @@ public:
   /// Subclasses may override this routine to provide different behavior.
   ExprResult RebuildCilkSpawnExpr(SourceLocation SpawnLoc, Expr *E) {
     return getSema().ActOnCilkSpawnExpr(SpawnLoc, E);
+  }
+
+  /// Build a new spawn statment.
+  ///
+  /// By default, performs semantic analysis to build the new expression.
+  /// Subclasses may override this routine to provide different behavior.
+  StmtResult RebuildSpawnStmt(SourceLocation SpawnLoc, StringRef SV, Stmt *S) {
+    return getSema().ActOnSpawnStmt(SpawnLoc, SV, S);
   }
 
   /// Build a new declaration statement.
@@ -13730,6 +13739,156 @@ TreeTransform<Derived>::TransformCapturedStmt(CapturedStmt *S) {
   }
 
   return getSema().ActOnCapturedRegionEnd(Body.get());
+}
+
+
+template<typename Derived>
+StmtResult
+TreeTransform<Derived>::TransformCilkSpawnStmt(CilkSpawnStmt *S) {
+  StmtResult Child = getDerived().TransformStmt(S->getSpawnedStmt());
+  if (Child.isInvalid())
+    return StmtError();
+
+  if (!getDerived().AlwaysRebuild() &&
+      Child.get() == S->getSpawnedStmt())
+    return S;
+
+  return getDerived().RebuildCilkSpawnStmt(S->getSpawnLoc(), Child.get());
+}
+
+template<typename Derived>
+ExprResult
+TreeTransform<Derived>::TransformCilkSpawnExpr(CilkSpawnExpr *E) {
+  ExprResult SpawnedExpr = getDerived().TransformExpr(E->getSpawnedExpr());
+  if (SpawnedExpr.isInvalid())
+    return ExprError();
+
+  if (!getDerived().AlwaysRebuild() && SpawnedExpr.get() == E->getSpawnedExpr())
+    return E;
+
+  return getDerived().RebuildCilkSpawnExpr(E->getSpawnLoc(), SpawnedExpr.get());
+}
+
+template<typename Derived>
+StmtResult
+TreeTransform<Derived>::TransformCilkSyncStmt(CilkSyncStmt *S) {
+  return S;
+}
+
+template<typename Derived>
+StmtResult
+TreeTransform<Derived>::TransformCilkForStmt(CilkForStmt *S) {
+  // Transform the initialization statement
+  StmtResult Init = getDerived().TransformStmt(S->getInit());
+  if (Init.isInvalid())
+    return StmtError();
+
+  // Transform the limit statement
+  StmtResult Limit;
+  if (S->getLimitStmt()) {
+    Limit = getDerived().TransformStmt(S->getLimitStmt());
+    if (Limit.isInvalid())
+      return StmtError();
+  }
+
+  // Transform the init-condition statement
+  Sema::ConditionResult InitCond;
+  if (S->getInitCond()) {
+    InitCond = getDerived().TransformCondition(
+        S->getCilkForLoc(), nullptr, S->getInitCond(),
+        Sema::ConditionKind::Boolean);
+    if (InitCond.isInvalid())
+      return StmtError();
+  }
+
+  // Transform the begin statement
+  StmtResult Begin;
+  if (S->getBeginStmt()) {
+    Begin = getDerived().TransformStmt(S->getBeginStmt());
+    if (Begin.isInvalid())
+      return StmtError();
+  }
+
+  // Transform the end statement
+  StmtResult End;
+  if (S->getEndStmt()) {
+    End = getDerived().TransformStmt(S->getEndStmt());
+    if (End.isInvalid())
+      return StmtError();
+  }
+
+  // // In OpenMP loop region loop control variable must be captured and be
+  // // private. Perform analysis of first part (if any).
+  // if (getSema().getLangOpts().OpenMP && Init.isUsable())
+  //   getSema().ActOnOpenMPLoopInitialization(S->getCilkForLoc(), Init.get());
+
+  // Transform the condition
+  Sema::ConditionResult Cond = getDerived().TransformCondition(
+      S->getCilkForLoc(), nullptr, S->getCond(),
+      Sema::ConditionKind::Boolean);
+  if (Cond.isInvalid())
+    return StmtError();
+
+  // Transform the increment
+  ExprResult Inc = getDerived().TransformExpr(S->getInc());
+  if (Inc.isInvalid())
+    return StmtError();
+
+  Sema::FullExprArg FullInc(getSema().MakeFullDiscardedValueExpr(Inc.get()));
+  if (S->getInc() && !FullInc.get())
+    return StmtError();
+
+  // Transform the extracted loop-variable declaration
+  VarDecl *LoopVar = nullptr;
+  if (VarDecl *LV = S->getLoopVariable()) {
+    LoopVar = dyn_cast<VarDecl>(
+        getDerived().TransformDefinition(LV->getLocation(), LV));
+    if (!LoopVar)
+      return StmtError();
+  }
+
+  // Transform loop body
+  StmtResult Body = getDerived().TransformStmt(S->getBody());
+  if (Body.isInvalid())
+    return StmtError();
+
+  if (!getDerived().AlwaysRebuild() &&
+      Init.get() == S->getInit() &&
+      Limit.get() == S->getLimitStmt() &&
+      InitCond.get() == std::make_pair((clang::VarDecl*)nullptr,
+                                       S->getInitCond()) &&
+      Begin.get() == S->getBeginStmt() &&
+      End.get() == S->getEndStmt() &&
+      Cond.get() == std::make_pair((clang::VarDecl*)nullptr, S->getCond()) &&
+      Inc.get() == S->getInc() &&
+      LoopVar == S->getLoopVariable() &&
+      Body.get() == S->getBody())
+    return S;
+
+  return getDerived().RebuildCilkForStmt(
+      S->getCilkForLoc(), S->getLParenLoc(), Init.get(), Limit.get(),
+      InitCond, Begin.get(), End.get(), Cond, FullInc, S->getRParenLoc(),
+      LoopVar, Body.get());
+}
+
+template<typename Derived>
+StmtResult
+TreeTransform<Derived>::TransformSpawnStmt(SpawnStmt *S) {
+  StmtResult Child = getDerived().TransformStmt(S->getSpawnedStmt());
+  if (Child.isInvalid())
+    return StmtError();
+
+  if (!getDerived().AlwaysRebuild() &&
+      Child.get() == S->getSpawnedStmt())
+    return S;
+
+  return getDerived().RebuildSpawnStmt(S->getSpawnLoc(), S->getSyncVar(), Child.get());
+}
+
+template<typename Derived>
+StmtResult
+TreeTransform<Derived>::TransformSyncStmt(SyncStmt *S) {
+  return S; 
 }
 
 } // end namespace clang

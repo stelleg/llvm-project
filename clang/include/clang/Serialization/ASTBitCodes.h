@@ -1872,6 +1872,9 @@ namespace serialization {
       EXPR_COYIELD,
       EXPR_DEPENDENT_COAWAIT,
 
+      STMT_SPAWN,
+      STMT_SYNC,
+
       // Cilk Plus
       STMT_CILKSPAWN,
       EXPR_CILKSPAWN,

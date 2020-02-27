@@ -422,6 +422,7 @@ Retry:
     // }
     Res = ParseCilkSyncStatement();
     SemiError = "_Cilk_sync";
+
   case tok::kw__tapir_spawn:              // spawn statement
     return ParseSpawnStatement();
 
@@ -429,6 +430,9 @@ Retry:
     Res = ParseSyncStatement();
     SemiError = "sync";
     break;
+
+  case tok::kw__tapir_forall:
+    return ParseForallStatement(TrailingElseLoc);
 
   case tok::kw__Cilk_for:
     // if (!getLangOpts().Cilk) {

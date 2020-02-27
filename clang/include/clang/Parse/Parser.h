@@ -2096,6 +2096,7 @@ private:
   StmtResult ParseCilkSyncStatement();
   StmtResult ParseSpawnStatement();
   StmtResult ParseSyncStatement();
+  StmtResult ParseForallStatement(SourceLocation *TrailingElseLoc);
   StmtResult ParseCilkForStatement(SourceLocation *TrailingElseLoc);
   StmtResult ParseCilkScopeStatement();
 

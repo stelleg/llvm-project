@@ -1330,6 +1330,8 @@ void ExprEngine::Visit(const Stmt *S, ExplodedNode *Pred,
       // Moreover, no additional evaluation required for them, the
       // analyzer can reconstruct these values from the AST.
       llvm_unreachable("Should be pruned from CFG");
+    case Stmt::ForallStmtClass:
+      llvm_unreachable("Stmt should not be in analyzer evaluation loop");
 
     case Stmt::ObjCSubscriptRefExprClass:
     case Stmt::ObjCPropertyRefExprClass:

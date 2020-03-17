@@ -141,12 +141,13 @@ Value *RealmABI::GetOrCreateWorker8(Function &F) {
   return P8;
 }
 
-void RealmABI::createSync(SyncInst &SI, ValueToValueMapTy &DetachCtxToStackFrame) {
+void RealmABI::lowerSync(SyncInst &SI) {
   IRBuilder<> builder(&SI); 
-  auto F = SI.getParent()->getParent(); 
-  auto M = F->getParent();
 
-  CallInst::Create(REALM_FUNC(realmSync, *M), "", F->getEntryBlock().getFirstNonPHIOrDbg());
+  std::vector<Value *> args;  //realmSync takes no arguments
+  auto sincwait = REALM_FUNC(realmSync);
+  //auto sincwait = get_realmSync();  // why don't we just do this? no macro
+  builder.CreateCall(sincwait, args);
 
   BranchInst *PostSync = BranchInst::Create(SI.getSuccessor(0));
   ReplaceInstWithInst(&SI, PostSync);

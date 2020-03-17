@@ -43,8 +43,7 @@ public:
   
   
   Value *GetOrCreateWorker8(Function &F) override final;
-  void createSync(SyncInst &inst, ValueToValueMapTy &DetachCtxToStackFrame)
-    override final;
+  void lowerSync(SyncInst &inst) override final;
 
   Function *createDetach(DetachInst &Detach,
                          ValueToValueMapTy &DetachCtxToStackFrame,

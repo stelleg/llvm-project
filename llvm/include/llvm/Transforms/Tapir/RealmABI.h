@@ -40,9 +40,8 @@ class RealmABI : public TapirTarget {
 public:
   RealmABI(Module &M);
   ~RealmABI() {} // may need to add something to clear lists, etc.
-  
-  
-  Value *GetOrCreateWorker8(Function &F) override final;
+
+  Value * RealmABI::lowerGrainsizeCall(CallInst *GrainsizeCall) override final;
   void lowerSync(SyncInst &inst) override final;
 
   Function *createDetach(DetachInst &Detach,

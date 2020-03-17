@@ -133,12 +133,37 @@ RealmABI::RealmABI(Module &M) : TapirTarget(M) {
            }, false));
 }
 
-static const StringRef worker8_name = "realm_nworker8";
+/// Lower a call to get the grainsize of this Tapir loop.
+///
+/// The grainsize is computed by the following equation:
+///
+///     Grainsize = min(2048, ceil(Limit / (8 * workers)))
+///
+/// This computation is inserted into the preheader of the loop.
+Value *RealmABI::lowerGrainsizeCall(CallInst *GrainsizeCall) {
+  Value *Limit = GrainsizeCall->getArgOperand(0);
+  IRBuilder<> Builder(GrainsizeCall);
 
-Value *RealmABI::GetOrCreateWorker8(Function &F) {
-  Value *P0 = CallInst::Create(REALM_FUNC(realmGetNumProcs, *F.getParent()), "", F.getEntryBlock().getTerminator());
-  Value *P8 = BinaryOperator::Create(Instruction::Mul, P0, ConstantInt::get(P0->getType(), 8), worker8_name, F.getEntryBlock().getTerminator());
-  return P8;
+  // Get 8 * workers
+  Value *Workers = Builder.CreateCall(REALM_FUNC(realmGetNumProcs));
+  //Value *Workers = Builder.CreateCall(get_realmGetNumProcs()); // no macro
+  Value *WorkersX8 = Builder.CreateIntCast(
+      Builder.CreateMul(Workers, ConstantInt::get(Workers->getType(), 8)),
+      Limit->getType(), false);
+  // Compute ceil(limit / 8 * workers) =
+  //           (limit + 8 * workers - 1) / (8 * workers)
+  Value *SmallLoopVal =
+    Builder.CreateUDiv(Builder.CreateSub(Builder.CreateAdd(Limit, WorkersX8),
+                                         ConstantInt::get(Limit->getType(), 1)),
+                       WorkersX8);
+  // Compute min
+  Value *LargeLoopVal = ConstantInt::get(Limit->getType(), 2048);
+  Value *Cmp = Builder.CreateICmpULT(LargeLoopVal, SmallLoopVal);
+  Value *Grainsize = Builder.CreateSelect(Cmp, LargeLoopVal, SmallLoopVal);
+
+  // Replace uses of grainsize intrinsic call with this grainsize value.
+  GrainsizeCall->replaceAllUsesWith(Grainsize);
+  return Grainsize;
 }
 
 void RealmABI::lowerSync(SyncInst &SI) {

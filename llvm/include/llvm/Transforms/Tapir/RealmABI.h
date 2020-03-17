@@ -44,14 +44,19 @@ public:
   Value * RealmABI::lowerGrainsizeCall(CallInst *GrainsizeCall) override final;
   void lowerSync(SyncInst &inst) override final;
 
-  Function *createDetach(DetachInst &Detach,
-                         ValueToValueMapTy &DetachCtxToStackFrame,
-                         DominatorTree &DT, AssumptionCache &AC) override final;
-  void preProcessFunction(Function &F) override final;
+  void processSubTaskCall(TaskOutlineInfo &TOI, DominatorTree &DT)
+    override final;
+  void preProcessFunction(Function &F, TaskInfo &TI,
+			  bool OutliningTapirLoops) override final;
   void postProcessFunction(Function &F, bool OutliningTapirLoops) 
     override final;
   void postProcessHelper(Function &F) override final;
 };
+
+  // not used
+  void processOutlinedTask(Function &F) override final {}
+  void processSpawner(Function &F) override final {}
+
 
 }  // end of llvm namespace
 

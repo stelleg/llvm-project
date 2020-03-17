@@ -313,7 +313,11 @@ Function *RealmABI::createDetach(DetachInst &detach,
 
 void RealmABI::preProcessFunction(Function &F) {}
 
-void RealmABI::postProcessFunction(Function &F) {
+void RealmABI::postProcessFunction(Function &F, bool OutliningTapirLoops) {
+  if (OutliningTapirLoops)
+    // Don't do any preprocessing when outlining Tapir loops;
+    return;
+
   Module *M = F.getParent();
   LLVMContext &C = M->getContext();
   IRBuilder<> builder(F.getEntryBlock().getFirstNonPHIOrDbg());

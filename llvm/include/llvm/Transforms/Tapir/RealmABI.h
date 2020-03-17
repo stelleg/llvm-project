@@ -48,7 +48,8 @@ public:
                          ValueToValueMapTy &DetachCtxToStackFrame,
                          DominatorTree &DT, AssumptionCache &AC) override final;
   void preProcessFunction(Function &F) override final;
-  void postProcessFunction(Function &F) override final;
+  void postProcessFunction(Function &F, bool OutliningTapirLoops) 
+    override final;
   void postProcessHelper(Function &F) override final;
 };
 

@@ -13,8 +13,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-//Need to add some way to include the kitsune-rt stuff I wrote
-
 #include "llvm/Transforms/Tapir/RealmABI.h"
 //#include "llvm/ADT/Statistic.h"
 //#include "llvm/Analysis/AssumptionCache.h"
@@ -43,12 +41,8 @@ using namespace llvm;
 
 #define DEBUG_TYPE "realmabi"
 
-//typedefs used as part of the auto-function generation for calls to Realm
-//typedef int (realmInitRuntime_t)(int argc, char** argv); 
-//typedef int (realmSync_t)();
 //typedef int (realmSpawn_t)(TaskFuncPtr fxn, const void *args, size_t arglen,
 //			   void *user_data, size_t user_data_len);
-//typedef size_t (realmGetNumProcs_t)();
 
 FunctionCallee RealmABI::get_realmGetNumProcs() {
   if(RealmGetNumProcs)
@@ -311,11 +305,41 @@ Function *RealmABI::createDetach(DetachInst &detach,
   return extracted;
 }
 
-void RealmABI::preProcessFunction(Function &F) {}
+void RealmABI::preProcessFunction(Function &F, TaskInfo &TI,
+				  bool OutliningTapirLoops) {
+  // TODO: I'm not sure Realm needs any of this, because syncs don't
+  // have any kind of variable that they sync on (at the moment)
+  // TODO: Does this effectively put a barrier at the end of every Function?
+  // Or is it just the root task?  Because that might be ok...
+
+  if (OutliningTapirLoops)
+    // Don't do any preprocessing when outlining Tapir loops.
+    return;
+
+  LLVMContext &C = M.getContext();
+  for (Task *T : post_order(TI.getRootTask())) {
+    if (T->isRootTask())
+      continue;
+    DetachInst *Detach = T->getDetach();
+    BasicBlock *detB = Detach->getParent();
+    BasicBlock *Spawned = T->getEntry();
+
+    // Add a submit to end of task body
+    //
+    // TB: I would interpret the above comment to mean we want qt_sinc_submit()
+    // before the task terminates.  But the code I see for inserting
+    // qt_sinc_submit just inserts the call at the end of the entry block of the
+    // task, which is not necessarily the end of the task.  I kept the code I
+    // found, but I'm not sure if it is correct.
+    IRBuilder<> footerB(Spawned->getTerminator());
+    std::vector<Value*> submitArgs; // realmSync takes no args
+    footerB.CreateCall(REALM_FUNC(realmSync), submitArgs);
+  }
+}
 
 void RealmABI::postProcessFunction(Function &F, bool OutliningTapirLoops) {
   if (OutliningTapirLoops)
-    // Don't do any preprocessing when outlining Tapir loops;
+    // Don't do any postprocessing when outlining Tapir loops.
     return;
 
   Module *M = F.getParent();

@@ -1,4 +1,4 @@
-//===- RealmABI.h - Interface to the Qthreads runtime ----*- C++ -*--===//
+//===- RealmABI.h - Interface to the Realm runtime ----*- C++ -*--===//
 //
 //                     The LLVM Compiler Infrastructure
 //

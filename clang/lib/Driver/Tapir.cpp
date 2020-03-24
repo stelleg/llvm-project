@@ -43,6 +43,7 @@ TapirTargetID clang::parseTapirTarget(const ArgList &Args) {
       .Case("cuda", TapirTargetID::Cuda)
       .Case("openmp", TapirTargetID::OpenMP)
       .Case("qthreads", TapirTargetID::Qthreads)
+      .Case("realm", TapirTargetID::Realm)
       .Default(TapirTargetID::Last_TapirTargetID);
 
   return TapirTarget;

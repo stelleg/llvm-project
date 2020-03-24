@@ -926,7 +926,8 @@ void ToolChain::AddKitsuneLibArgs(const ArgList &Args,
       } else if (Name == "realm") {
 	if (KITSUNE_ENABLE_REALM) { 
 	  CmdArgs.push_back("-L" KITSUNE_REALM_LIBRARY_DIR);
-	  CmdArgs.push_back("-rpath=" KITSUNE_REALM_LIBRARY_DIR);
+	  CmdArgs.push_back("-L" KITSUNE_REALM_WRAPPER_LIBRARY_DIR);
+	  CmdArgs.push_back("-rpath=" KITSUNE_REALM_LIBRARY_DIR ":" KITSUNE_REALM_WRAPPER_LIBRARY_DIR);
 	  ExtractArgsFromString(KITSUNE_REALM_LINK_LIBS, CmdArgs, Args);
 	} else {
 	  getDriver().Diag(diag::warn_realm_missing_build_params);	  

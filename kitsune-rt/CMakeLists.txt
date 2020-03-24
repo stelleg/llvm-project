@@ -5,12 +5,12 @@ find_library(REALM_LIBRARY realm)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Realm DEFAULT_MSG
-								  REALM_INCLUDE_DIR 
-												  REALM_LIBRARY)
+				  REALM_INCLUDE_DIR 
+				  REALM_LIBRARY)
 if (Realm_FOUND)
   message(STATUS "kitsune-rt: looking for realm... FOUND")
   get_filename_component(REALM_LIBRARY_DIR
-		 ${REALM_LIBRARY}
+		         ${REALM_LIBRARY}
                          DIRECTORY)
 
   include_directories(

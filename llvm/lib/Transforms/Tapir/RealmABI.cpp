@@ -173,6 +173,60 @@ void RealmABI::lowerSync(SyncInst &SI) {
   return;
 }
 
+void RealmABI::processSubTaskCall(TaskOutlineInfo &TOI, DominatorTree &DT) {
+  Function *Outlined = TOI.Outline;
+  Instruction *ReplStart = TOI.ReplStart;
+  CallBase *ReplCall = cast<CallBase>(TOI.ReplCall);
+  BasicBlock *CallBlock = ReplStart->getParent();
+
+  LLVMContext &C = M.getContext();
+  const DataLayout &DL = M.getDataLayout();
+
+  // At this point, we have a call in the parent to a function containing the
+  // task body.  That function takes as its argument a pointer to a structure
+  // containing the inputs to the task body.  This structure is initialized in
+  // the parent immediately before the call.
+
+  // To match the Realm ABI, we replace the existing call with a call to
+  // realmSync from the kitsune-rt realm wrapper.
+  IRBuilder<> CallerIRBuilder(ReplCall);
+  Value *OutlinedFnPtr = CallerIRBuilder.CreatePointerBitCastOrAddrSpaceCast(
+      Outlined, TaskFuncPtrTy);
+  AllocaInst *CallerArgStruct = cast<AllocaInst>(ReplCall->getArgOperand(0));
+  Type *ArgsTy = CallerArgStruct->getAllocatedType();
+  Value *ArgStructPtr = CallerIRBuilder.CreateBitCast(CallerArgStruct,
+                                                      Type::getInt8PtrTy(C));
+  ConstantInt *ArgSize = ConstantInt::get(DL.getIntPtrType(C),
+                                          DL.getTypeAllocSize(ArgsTy));
+  CallInst *Call = CallerIRBuilder.CreateCall(
+      REALM_FUNC(realmSpawn), { OutlinedFnPtr, 
+	                        ArgStructPtr,
+                                ArgSize,
+	                        ArgStructPtr,
+	                        ArgSize});
+  Call->setDebugLoc(ReplCall->getDebugLoc());
+  TOI.replaceReplCall(Call);
+  ReplCall->eraseFromParent();
+
+  // Add lifetime intrinsics for the argument struct.  TODO: Move this logic
+  // into underlying LoweringUtils routines?
+  CallerIRBuilder.SetInsertPoint(ReplStart);
+  CallerIRBuilder.CreateLifetimeStart(CallerArgStruct, ArgSize);
+  CallerIRBuilder.SetInsertPoint(CallBlock, ++Call->getIterator());
+  CallerIRBuilder.CreateLifetimeEnd(CallerArgStruct, ArgSize);
+
+  if (TOI.ReplUnwind)
+    // We assume that realmSpawn dealt with the exception.  But
+    // replacing the invocation of the helper function with the call to
+    // realmSpawn will remove the terminator from CallBlock.  Restore
+    // that terminator here.
+    BranchInst::Create(TOI.ReplRet, CallBlock);
+
+  // VERIFY: If we're using realmSpawn, we don't need a separate helper
+  // function to manage the allocation of the argument structure.
+}
+
+
 // Adds entry basic blocks to body of extracted, replacing extracted, and adds
 // necessary code to call, i.e. storing arguments in struct
 Function* formatFunctionToRealmF(Function* extracted, Instruction* ical){
@@ -307,8 +361,6 @@ Function *RealmABI::createDetach(DetachInst &detach,
 
 void RealmABI::preProcessFunction(Function &F, TaskInfo &TI,
 				  bool OutliningTapirLoops) {
-  // TODO: I'm not sure Realm needs any of this, because syncs don't
-  // have any kind of variable that they sync on (at the moment)
   // TODO: Does this effectively put a barrier at the end of every Function?
   // Or is it just the root task?  Because that might be ok...
 
@@ -325,12 +377,6 @@ void RealmABI::preProcessFunction(Function &F, TaskInfo &TI,
     BasicBlock *Spawned = T->getEntry();
 
     // Add a submit to end of task body
-    //
-    // TB: I would interpret the above comment to mean we want qt_sinc_submit()
-    // before the task terminates.  But the code I see for inserting
-    // qt_sinc_submit just inserts the call at the end of the entry block of the
-    // task, which is not necessarily the end of the task.  I kept the code I
-    // found, but I'm not sure if it is correct.
     IRBuilder<> footerB(Spawned->getTerminator());
     std::vector<Value*> submitArgs; // realmSync takes no args
     footerB.CreateCall(REALM_FUNC(realmSync), submitArgs);

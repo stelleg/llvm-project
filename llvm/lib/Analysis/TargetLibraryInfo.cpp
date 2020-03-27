@@ -41,6 +41,8 @@ static cl::opt<TapirTargetID> ClTapirTarget(
                           "openmp", "OpenMP"),
                clEnumValN(TapirTargetID::CilkR,
                           "cilkr", "CilkR"),
+               clEnumValN(TapirTargetID::Qthreads,
+                          "qthreads", "Qthreads"),
                clEnumValN(TapirTargetID::Cheetah,
                           "cheetah", "Cheetah")));
 

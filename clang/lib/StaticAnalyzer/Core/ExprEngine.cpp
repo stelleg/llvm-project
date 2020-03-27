@@ -1232,6 +1232,8 @@ void ExprEngine::Visit(const Stmt *S, ExplodedNode *Pred,
     case Expr::CilkSpawnExprClass:
     case Stmt::CilkSyncStmtClass:
     case Stmt::CilkScopeStmtClass:
+    case Stmt::SpawnStmtClass:
+    case Stmt::SyncStmtClass:      
     case Stmt::CoroutineBodyStmtClass:
     case Stmt::CoawaitExprClass:
     case Stmt::DependentCoawaitExprClass:
@@ -1340,6 +1342,7 @@ void ExprEngine::Visit(const Stmt *S, ExplodedNode *Pred,
       // analyzer can reconstruct these values from the AST.
       llvm_unreachable("Should be pruned from CFG");
     case Stmt::ForallStmtClass:
+    case Stmt::CXXForallRangeStmtClass:
       llvm_unreachable("Stmt should not be in analyzer evaluation loop");
 
     case Stmt::ObjCSubscriptRefExprClass:

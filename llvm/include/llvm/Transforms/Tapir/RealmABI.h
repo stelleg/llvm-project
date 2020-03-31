@@ -41,23 +41,23 @@ public:
   RealmABI(Module &M);
   ~RealmABI() {} // may need to add something to clear lists, etc.
 
-  Value * RealmABI::lowerGrainsizeCall(CallInst *GrainsizeCall) override final;
+  Value * lowerGrainsizeCall(CallInst *GrainsizeCall) override final;
   void lowerSync(SyncInst &inst) override final;
-
   void processSubTaskCall(TaskOutlineInfo &TOI, DominatorTree &DT)
     override final;
+
   void preProcessFunction(Function &F, TaskInfo &TI,
 			  bool OutliningTapirLoops) override final;
   void postProcessFunction(Function &F, bool OutliningTapirLoops) 
     override final;
   void postProcessHelper(Function &F) override final;
-};
 
   // not used
   void processOutlinedTask(Function &F) override final {}
   void processSpawner(Function &F) override final {}
 
 
+};
 }  // end of llvm namespace
 
 #endif

@@ -48,7 +48,7 @@ FunctionCallee RealmABI::get_realmGetNumProcs() {
   if(RealmGetNumProcs)
     return RealmGetNumProcs;
 
-  LLVMContext &C = M.getContext; //TODO: where does M come from?
+  LLVMContext &C = M.getContext(); //TODO: where does M come from?
   const DataLayout &DL = M.getDataLayout();
   AttributeList AL;
   // TODO: Set appropriate function attributes.
@@ -61,7 +61,7 @@ FunctionCallee RealmABI::get_realmSpawn() {
   if(RealmSpawn)
     return RealmSpawn;
 
-  LLVMContext &C = M.getContext; //TODO: where does M come from?
+  LLVMContext &C = M.getContext(); //TODO: where does M come from?
   const DataLayout &DL = M.getDataLayout();
   AttributeList AL;
   // TODO: Set appropriate function attributes.
@@ -81,7 +81,7 @@ FunctionCallee RealmABI::get_realmSync() {
   if(RealmSync)
     return RealmSync;
 
-  LLVMContext &C = M.getContext; //TODO: where does M come from?
+  LLVMContext &C = M.getContext(); //TODO: where does M come from?
   AttributeList AL;
   // TODO: Set appropriate function attributes.
   FunctionType *FTy = FunctionType::get(Type::getInt32Ty(C), {}, false);
@@ -93,7 +93,7 @@ FunctionCallee RealmABI::get_realmInitRuntime() {
   if(RealmInitRuntime)
     return RealmInitRuntime;
 
-  LLVMContext &C = M.getContext; //TODO: where does M come from?
+  LLVMContext &C = M.getContext(); //TODO: where does M come from?
   AttributeList AL;
   // TODO: Set appropriate function attributes.
   FunctionType *FTy = FunctionType::get(
@@ -226,7 +226,7 @@ void RealmABI::processSubTaskCall(TaskOutlineInfo &TOI, DominatorTree &DT) {
   // function to manage the allocation of the argument structure.
 }
 
-
+#if 0
 // Adds entry basic blocks to body of extracted, replacing extracted, and adds
 // necessary code to call, i.e. storing arguments in struct
 Function* formatFunctionToRealmF(Function* extracted, Instruction* ical){
@@ -358,6 +358,7 @@ Function *RealmABI::createDetach(DetachInst &detach,
 
   return extracted;
 }
+#endif
 
 void RealmABI::preProcessFunction(Function &F, TaskInfo &TI,
 				  bool OutliningTapirLoops) {
@@ -395,10 +396,10 @@ void RealmABI::postProcessFunction(Function &F, bool OutliningTapirLoops) {
   //default values of 0 and nullptr
   //TODO: handle the case where main actually has an argc and argv
   Value* zero = ConstantInt::get(Type::getInt32Ty(C), 0);
-  Value* null = Constant::getNullValue(PointerType::getUnqual(Type::getInt8PtrTy(C))); //TODO: make a char**?
+  Value* null = Constant::getNullValue(PointerType::getUnqual(Type::getInt8PtrTy(C)));
   ArrayRef<Value*> initArgs = {zero, null};
 
-  builder.CreateCall(REALM_FUNC(realmInitRuntime, *M), initArgs);
+  builder.CreateCall(REALM_FUNC(realmInitRuntime), initArgs);
 }
 
 void RealmABI::postProcessHelper(Function &F) {}

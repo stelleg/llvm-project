@@ -1288,7 +1288,7 @@ CanThrowResult Sema::canThrow(const Stmt *S) {
       return CT_Can;
     return canSubStmtsThrow(*this, S);
   case Expr::CilkSpawnExprClass:
-    return canSubExprsThrow(*this, E);
+    return canSubStmtsThrow(*this, S);
 
     // Some might be dependent for other reasons.
   case Expr::ArraySubscriptExprClass:

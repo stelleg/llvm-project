@@ -4491,6 +4491,7 @@ UnreachableInst *UnreachableInst::cloneImpl() const {
 
 FreezeInst *FreezeInst::cloneImpl() const {
   return new FreezeInst(getOperand(0));
+}
 
 DetachInst *DetachInst::cloneImpl() const {
   return new(getNumOperands()) DetachInst(*this);

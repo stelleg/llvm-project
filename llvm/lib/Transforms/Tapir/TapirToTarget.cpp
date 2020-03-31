@@ -42,6 +42,13 @@ public:
       : Target(Target), M(M), GetDT(GetDT), GetTI(GetTI), GetAC(GetAC) {
     assert(this->Target);
   }
+  TapirToTargetImpl(Module &M,
+                    function_ref<DominatorTree &(Function &)> GetDT,
+                    function_ref<TaskInfo &(Function &)> GetTI,
+                    function_ref<AssumptionCache &(Function &)> GetAC,
+                    function_ref<TapirTarget *(Function &)> GetTarget)
+      : GetTarget(GetTarget), M(M), GetDT(GetDT), GetTI(GetTI), GetAC(GetAC) {
+  }
   ~TapirToTargetImpl() {
     if (Target)
       delete Target;
@@ -63,6 +70,7 @@ private:
 
 private:
   TapirTarget *Target = nullptr;
+  function_ref<TapirTarget *(Function &)> GetTarget;
 
   Module &M;
 
@@ -281,6 +289,7 @@ void TapirToTargetImpl::processFunction(
   LLVM_DEBUG(dbgs() << "Tapir: Processing function " << F.getName() << "\n");
 
   // Get the necessary analysis results.
+  Target = GetTarget(F); 
   DominatorTree &DT = GetDT(F);
   TaskInfo &TI = GetTI(F);
   AssumptionCache &AC = GetAC(F);
@@ -419,8 +428,6 @@ INITIALIZE_PASS_END(LowerTapirToTarget, "tapir2target",
 bool LowerTapirToTarget::runOnModule(Module &M) {
   if (skipModule(M))
     return false;
-  auto &TLI = getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
-  TapirTargetID TargetID = TLI.getTapirTarget();
 
   auto GetDT =
     [this](Function &F) -> DominatorTree & {
@@ -436,10 +443,14 @@ bool LowerTapirToTarget::runOnModule(Module &M) {
       return ACT->getAssumptionCache(F);
     };
 
-  bool Changed = false;
-  Changed |= TapirToTargetImpl(M, GetDT, GetTI, GetAC,
-                               getTapirTargetFromID(M, TargetID)).run();
-  return Changed;
+  auto GetTarget = 
+    [this, &M](Function &F) -> TapirTarget* {
+      auto TLI = this->getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
+      TapirTargetID TargetID = TLI.getTapirTarget();
+      return getTapirTargetFromID(M, TargetID); 
+    }; 
+
+  return TapirToTargetImpl(M, GetDT, GetTI, GetAC, GetTarget).run(); 
 }
 
 // createLowerTapirToTargetPass - Provide an entry point to create this pass.

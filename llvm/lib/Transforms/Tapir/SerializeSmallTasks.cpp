@@ -24,6 +24,7 @@
 #include "llvm/Transforms/Tapir/LoopStripMine.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
 #include "llvm/Transforms/Utils/TapirUtils.h"
+#include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
 
@@ -142,7 +143,7 @@ bool SerializeSmallTasks::runOnFunction(Function &F) {
   if (TI.isSerial())
     return false;
 
-  auto &TLI = getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
+  auto &TLI = getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
   auto &DT = getAnalysis<DominatorTreeWrapperPass>().getDomTree();
   LoopInfo *LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
   ScalarEvolution &SE = getAnalysis<ScalarEvolutionWrapperPass>().getSE();

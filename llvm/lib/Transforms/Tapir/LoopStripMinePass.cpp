@@ -303,7 +303,7 @@ public:
 
     Function &F = *L->getHeader()->getParent();
 
-    auto &TLI = getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
+    auto &TLI = getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
     auto &DT = getAnalysis<DominatorTreeWrapperPass>().getDomTree();
     LoopInfo *LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
     TaskInfo *TI = &getAnalysis<TaskInfoWrapperPass>().getTaskInfo();

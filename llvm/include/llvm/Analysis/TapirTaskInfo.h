@@ -26,6 +26,7 @@
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/PassManager.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Allocator.h"
 #include <algorithm>
@@ -551,8 +552,8 @@ public:
   Spindle *getEHContinuationSpindle() const {
     assert(((isRootTask() && !EHContinuation) ||
             (!isRootTask() &&
-             (getDetach()->hasUnwindDest() && EHContinuation) ||
-             (!getDetach()->hasUnwindDest() && !EHContinuation))) &&
+             ((getDetach()->hasUnwindDest() && EHContinuation) ||
+              (!getDetach()->hasUnwindDest() && !EHContinuation)))) &&
            "Task should have a EH continuation spindle iff not a root task and "
            "detach has an unwind destination.");
     return EHContinuation;
@@ -564,8 +565,8 @@ public:
   Value *getLPadValueInEHContinuationSpindle() const {
     assert(((isRootTask() && !LPadValueInEHContinuation) ||
             (!isRootTask() &&
-             (getDetach()->hasUnwindDest() && LPadValueInEHContinuation) ||
-             (!getDetach()->hasUnwindDest() && !LPadValueInEHContinuation))) &&
+             ((getDetach()->hasUnwindDest() && LPadValueInEHContinuation) ||
+              (!getDetach()->hasUnwindDest() && !LPadValueInEHContinuation)))) &&
            "Task should have a EH continuation spindle iff not a root task and "
            "detach has an unwind destination.");
     return LPadValueInEHContinuation;

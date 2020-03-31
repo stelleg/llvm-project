@@ -910,16 +910,6 @@ bool llvm::hoistRegion(DomTreeNode *N, AliasAnalysis *AA, LoopInfo *LI,
           CurLoop->hasLoopInvariantOperands(&I) &&
           MustExecuteWithoutWritesBefore(I)) {
         hoist(I, DT, CurLoop, CFH.getOrCreateHoistedBlock(BB), SafetyInfo,
-              MSSAU, SE, ORE);
-        HoistedInstructions.push_back(&I);
-        Changed = true;
-        continue;
-      }
-
-      if (isa<AllocaInst>(&I) &&
-          SafetyInfo->isGuaranteedToExecute(I, DT, CurLoop) &&
-          canRewriteUsesOfAlloca(cast<AllocaInst>(I))) {
-        hoist(I, DT, CurLoop, CFH.getOrCreateHoistedBlock(BB), SafetyInfo,
               MSSAU, SE, TI, ORE);
         HoistedInstructions.push_back(&I);
         Changed = true;

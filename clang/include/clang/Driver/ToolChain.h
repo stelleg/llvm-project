@@ -637,11 +637,6 @@ public:
   /// program devirtualization and CFI santiizers.
   virtual bool canSplitThinLTOUnit() const { return true; }
 
-  // GetTapirRuntimeLibType - Determine the runtime library type to use with
-  // Tapir.
-  virtual TapirRuntimeLibType GetTapirRuntimeLibType(
-      const llvm::opt::ArgList &Args) const;
-
   /// AddTapirRuntimeLibArgs - Add the specific linker arguments to use for the
   /// given Tapir runtime library type.
   virtual void AddTapirRuntimeLibArgs(const llvm::opt::ArgList &Args,

@@ -28,7 +28,6 @@ add_llvm_component_library(LLVMAnalysis
   DemandedBits.cpp
   DependenceAnalysis.cpp
   DependenceGraphBuilder.cpp
-  DetachSSA.cpp
   DivergenceAnalysis.cpp
   DomPrinter.cpp
   DomTreeUpdater.cpp

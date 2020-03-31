@@ -1291,7 +1291,7 @@ AllocaInst *CilkABI::CreateStackFrame(Function &F) {
   AllocaInst *SF = B.CreateAlloca(SFTy, DL.getAllocaAddrSpace(),
                                   /*ArraySize*/nullptr,
                                   /*Name*/stack_frame_name);
-  SF->setAlignment(8);
+  SF->setAlignment(Align(8));
 
   return SF;
 }

@@ -1494,7 +1494,7 @@ bool CilkSanitizerImpl::SimpleInstrumentor::InstrumentAnyMemIntrinsics(
   bool Result = false;
   for (Instruction *I : MemIntrinsics) {
     bool LocalResult = false;
-    if (auto *MT = dyn_cast<AnyMemTransferInst>(I)) {
+    if (isa<AnyMemTransferInst>(I)) {
       LocalResult |= CilkSanImpl.instrumentAnyMemIntrinAcc(I, /*Src*/1);
       LocalResult |= CilkSanImpl.instrumentAnyMemIntrinAcc(I, /*Dst*/0);
     } else {
@@ -3469,8 +3469,6 @@ bool CilkSanitizerLegacyPass::runOnModule(Module &M) {
     return false;
 
   CallGraph *CG = &getAnalysis<CallGraphWrapperPass>().getCallGraph();
-  const TargetLibraryInfo *TLI =
-      &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
   auto GetDomTree = [this](Function &F) -> DominatorTree & {
     return this->getAnalysis<DominatorTreeWrapperPass>(F).getDomTree();
   };
@@ -3488,7 +3486,7 @@ bool CilkSanitizerLegacyPass::runOnModule(Module &M) {
   };
 
   return CilkSanitizerImpl(M, CG, GetDomTree, GetTaskInfo, GetLoopInfo,
-                           GetDepInfo, GetRaceInfo, TLI, JitMode,
+                           GetDepInfo, GetRaceInfo, nullptr, JitMode,
                            CallsMayThrow).run();
 }
 

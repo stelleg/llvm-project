@@ -4204,7 +4204,7 @@ DependenceInfo::depends(GeneralAccess *SrcA, GeneralAccess *DstA,
 
   if (!SrcA->isValid() || !DstA->isValid()) {
     LLVM_DEBUG(dbgs() << "could not interpret general accesses\n");
-    return make_unique<Dependence>(Src, Dst);
+    return std::make_unique<Dependence>(Src, Dst);
   }
 
   Value *SrcPtr = getGeneralAccessPointerOperand(SrcA);
@@ -4216,7 +4216,7 @@ DependenceInfo::depends(GeneralAccess *SrcA, GeneralAccess *DstA,
   case PartialAlias:
     // cannot analyse objects if we don't understand their aliasing.
     LLVM_DEBUG(dbgs() << "can't analyze may or partial alias\n");
-    return make_unique<Dependence>(Src, Dst);
+    return std::make_unique<Dependence>(Src, Dst);
   case NoAlias:
     // If the objects noalias, they are distinct, accesses are independent.
     LLVM_DEBUG(dbgs() << "no alias\n");
@@ -4238,7 +4238,7 @@ DependenceInfo::depends(GeneralAccess *SrcA, GeneralAccess *DstA,
   if (!SE->isSCEVable(SrcPtr->getType()) ||
       !SE->isSCEVable(DstPtr->getType())) {
     LLVM_DEBUG(dbgs() << "can't analyze non-scevable pointers\n");
-    return make_unique<Dependence>(Src, Dst);
+    return std::make_unique<Dependence>(Src, Dst);
   }
   const SCEV *SrcSCEV = SE->getSCEV(SrcPtr);
   const SCEV *DstSCEV = SE->getSCEV(DstPtr);
@@ -4568,5 +4568,5 @@ DependenceInfo::depends(GeneralAccess *SrcA, GeneralAccess *DstA,
       return nullptr;
   }
 
-  return make_unique<FullDependence>(std::move(Result));
+  return std::make_unique<FullDependence>(std::move(Result));
 }

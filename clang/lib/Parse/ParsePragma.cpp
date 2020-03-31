@@ -364,11 +364,11 @@ void Parser::initializePragmaHandlers() {
 
   OptimizeHandler = std::make_unique<PragmaOptimizeHandler>(Actions);
   // if (getLangOpts().Cilk) {
-    CilkHintHandler = llvm::make_unique<PragmaCilkHintHandler>();
+    CilkHintHandler = std::make_unique<PragmaCilkHintHandler>();
     PP.AddPragmaHandler(CilkHintHandler.get());
   // }
 
-  OptimizeHandler = llvm::make_unique<PragmaOptimizeHandler>(Actions);
+  OptimizeHandler = std::make_unique<PragmaOptimizeHandler>(Actions);
   PP.AddPragmaHandler("clang", OptimizeHandler.get());
 
   LoopHintHandler = std::make_unique<PragmaLoopHintHandler>();
@@ -3107,7 +3107,7 @@ void PragmaCilkHintHandler::HandlePragma(Preprocessor &PP,
     return;
   }
 
-  auto TokenArray = llvm::make_unique<Token[]>(TokenList.size());
+  auto TokenArray = std::make_unique<Token[]>(TokenList.size());
   std::copy(TokenList.begin(), TokenList.end(), TokenArray.get());
 
   PP.EnterTokenStream(std::move(TokenArray), TokenList.size(),

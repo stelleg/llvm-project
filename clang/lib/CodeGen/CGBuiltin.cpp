@@ -1979,9 +1979,17 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   case Builtin::BI__builtin_conjf:
   case Builtin::BI__builtin_conjl: {
     IsSpawnedScope SpawnedScp(this);
+    ComplexPairTy ComplexVal = EmitComplexExpr(E->getArg(0));
+    MaybeDetach(this, SpawnedScp);
+    Value *Real = ComplexVal.first;
+    Value *Imag = ComplexVal.second;
+    Imag = Builder.CreateFNeg(Imag, "neg");
+    return RValue::getComplex(std::make_pair(Real, Imag));
+  }
   case Builtin::BIconj:
   case Builtin::BIconjf:
   case Builtin::BIconjl: {
+    IsSpawnedScope SpawnedScp(this);
     ComplexPairTy ComplexVal = EmitComplexExpr(E->getArg(0));
     MaybeDetach(this, SpawnedScp);
     Value *Real = ComplexVal.first;
@@ -2579,7 +2587,7 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
   }
   case Builtin::BImemcpy:
   case Builtin::BImempcpy:
-  case Builtin::BI__builtin_mempcpy: {
+  case Builtin::BI__builtin_mempcpy: 
   case Builtin::BI__builtin_memcpy: {
     IsSpawnedScope SpawnedScp(this);
     Address Dest = EmitPointerWithAlignment(E->getArg(0));

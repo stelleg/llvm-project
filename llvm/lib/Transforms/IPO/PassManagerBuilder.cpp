@@ -750,6 +750,7 @@ void PassManagerBuilder::populateModulePassManager(
     // analysis to establish no-aliasing between loads and stores of different
     // columns of the same matrix.
     MPM.add(createEarlyCSEPass(false));
+  }
 
   // Stripmine Tapir loops.
   if (LoopStripmine) {

@@ -2307,7 +2307,7 @@ bool llvm::removeUnreachableBlocks(Function &F, DomTreeUpdater *DTU,
     for (auto *BB : DeadBlockSet)
       BB->eraseFromParent();
   }
-  removeDeadDetachUnwinds(F, LVI, DTU, MSSAU);
+  removeDeadDetachUnwinds(F, nullptr, DTU, MSSAU);
   return true;
 }
 
@@ -2374,7 +2374,7 @@ bool llvm::removeDeadDetachUnwinds(Function &F, LazyValueInfo *LVI,
         }
   // If any dead detach-unwinds were removed, remove unreachable blocks.
   if (Changed)
-    removeUnreachableBlocks(F, LVI, DTU, MSSAU);
+    removeUnreachableBlocks(F, DTU, MSSAU);
   return Changed;
 }
 

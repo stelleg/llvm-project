@@ -1425,7 +1425,7 @@ struct LoopSpawningTI : public FunctionPass {
     auto &TI = getAnalysis<TaskInfoWrapperPass>().getTaskInfo();
     auto &SE = getAnalysis<ScalarEvolutionWrapperPass>().getSE();
     auto &AC = getAnalysis<AssumptionCacheTracker>().getAssumptionCache(F);
-    auto &TLI = getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
+    auto &TLI = getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
     TapirTargetID TargetID = TLI.getTapirTarget();
     auto &TTI = getAnalysis<TargetTransformInfoWrapperPass>().getTTI(F);
     auto &ORE = getAnalysis<OptimizationRemarkEmitterWrapperPass>().getORE();

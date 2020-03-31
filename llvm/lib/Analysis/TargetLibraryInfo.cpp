@@ -31,6 +31,9 @@ static cl::opt<TargetLibraryInfoImpl::VectorLibrary> ClVectorLibrary(
 
 StringLiteral const TargetLibraryInfoImpl::StandardNames[LibFunc::NumLibFuncs] =
     {
+#define TLI_DEFINE_STRING
+#include "llvm/Analysis/TargetLibraryInfo.def"
+};
 
 static cl::opt<TapirTargetID> ClTapirTarget(
     "tapir-target", cl::Hidden, cl::desc("Target runtime for Tapir"),
@@ -50,9 +53,6 @@ static cl::opt<TapirTargetID> ClTapirTarget(
                clEnumValN(TapirTargetID::Cheetah,
                           "cheetah", "Cheetah")));
 
-#define TLI_DEFINE_STRING
-#include "llvm/Analysis/TargetLibraryInfo.def"
-};
 
 static bool hasSinCosPiStret(const Triple &T) {
   // Only Darwin variants have _stret versions of combined trig functions.

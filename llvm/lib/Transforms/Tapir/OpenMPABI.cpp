@@ -25,6 +25,7 @@
 #include "llvm/Transforms/Utils/TapirUtils.h"
 #include "llvm/Transforms/Utils/CodeExtractor.h"
 #include "llvm/Transforms/Utils/ValueMapper.h"
+#include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
 
@@ -229,10 +230,10 @@ Value *getThreadID(Function *F, IRBuilder<> &IRBuilder) {
     DataLayout DL(F->getParent());
     auto Alloca = I2->second;
     auto ThreadIDAddrs = IRBuilder.CreateLoad(Alloca);
-    ThreadIDAddrs->setAlignment(DL.getTypeAllocSize(ThreadIDAddrs->getType()));
+    ThreadIDAddrs->setAlignment(Align(DL.getTypeAllocSize(ThreadIDAddrs->getType())));
     ThreadID = IRBuilder.CreateLoad(ThreadIDAddrs);
     ((LoadInst *)ThreadID)
-        ->setAlignment(DL.getTypeAllocSize(ThreadID->getType()));
+        ->setAlignment(Align(DL.getTypeAllocSize(ThreadID->getType())));
     auto &Elem = OpenMPThreadIDLoadMap.FindAndConstruct(F);
     Elem.second = ThreadID;
     return ThreadID;
@@ -326,7 +327,7 @@ Value *getOrCreateDefaultLocation(Module &M) {
     auto *GV =
         new GlobalVariable(M, C->getType(), true, GlobalValue::PrivateLinkage,
                            C, ".str", nullptr, GlobalValue::NotThreadLocal);
-    GV->setAlignment(Alignment);
+    GV->setAlignment(Align(Alignment));
     GV->setUnnamedAddr(GlobalValue::UnnamedAddr::Global);
     DefaultOpenMPPSource = cast<Constant>(GV);
     DefaultOpenMPPSource = ConstantExpr::getBitCast(
@@ -346,7 +347,7 @@ Value *getOrCreateDefaultLocation(Module &M) {
         new GlobalVariable(M, C->getType(), true, GlobalValue::PrivateLinkage,
                            C, "", nullptr, GlobalValue::NotThreadLocal);
     GV->setUnnamedAddr(GlobalValue::UnnamedAddr::Global);
-    GV->setAlignment(8);
+    GV->setAlignment(Align(8));
     DefaultOpenMPLocation = GV;
   }
 
@@ -436,7 +437,7 @@ Function* formatFunctionToTask(Function* extracted, Instruction* CallSite) {
   IRBuilder<> CallerIRBuilder(cal);
   auto *SharedsTySize =
       CallerIRBuilder.getInt64(DL.getTypeAllocSize(SharedsTy));
-  auto *KmpTaskTTy = createKmpTaskTTy(C);
+  //auto *KmpTaskTTy = createKmpTaskTTy(C);
   auto *KmpTaskTWithPrivatesTy = createKmpTaskTWithPrivatesTy(SharedsTy);//KmpTaskTTy);
   auto *KmpTaskTWithPrivatesPtrTy =
       PointerType::getUnqual(KmpTaskTWithPrivatesTy);
@@ -444,11 +445,11 @@ Function* formatFunctionToTask(Function* extracted, Instruction* CallSite) {
       CallerIRBuilder.getInt64(DL.getTypeAllocSize(KmpTaskTWithPrivatesTy));
 
   auto *VoidTy = Type::getVoidTy(C);
-  auto *Int8PtrTy = Type::getInt8PtrTy(C);
+  //auto *Int8PtrTy = Type::getInt8PtrTy(C);
   auto *Int32Ty = Type::getInt32Ty(C);
 
-  auto *CopyFnTy = FunctionType::get(VoidTy, {Int8PtrTy}, true);
-  auto *CopyFnPtrTy = PointerType::getUnqual(CopyFnTy);
+  //auto *CopyFnTy = FunctionType::get(VoidTy, {Int8PtrTy}, true);
+  //auto *CopyFnPtrTy = PointerType::getUnqual(CopyFnTy);
 
   auto *OutlinedFnTy = FunctionType::get(
       VoidTy,
@@ -611,7 +612,7 @@ void OpenMPABI::postProcessFunction(Function &F,
     }
   }
 
-  for(int i=1; i<VisitedVec.size(); i++) {
+  for(int i=1; i<(int)VisitedVec.size(); i++) {
       for (auto P : predecessors(VisitedVec[i])) {
         if (Visited.count(P) == 0) {
           std::swap(VisitedVec[0], VisitedVec[i]);
@@ -620,8 +621,9 @@ void OpenMPABI::postProcessFunction(Function &F,
       }
   }
 
+  CodeExtractorAnalysisCache CEAC(F); 
   CodeExtractor RegionExtractor(VisitedVec);
-  Function *RegionFn = RegionExtractor.extractCodeRegion();
+  Function *RegionFn = RegionExtractor.extractCodeRegion(CEAC);
 
   std::vector<Type *> FnParams;
   std::vector<StringRef> FnArgNames;
@@ -734,10 +736,10 @@ void OpenMPABI::postProcessFunction(Function &F,
     ++ArgIt;
   }
 
-  auto ForkRTFn = createRuntimeFunction(
-      OpenMPRuntimeFunction::OMPRTL__kmpc_fork_call, F.getParent());
+  //auto ForkRTFn = createRuntimeFunction(
+  //    OpenMPRuntimeFunction::OMPRTL__kmpc_fork_call, F.getParent());
   // Replace the old call with __kmpc_fork_call
-  auto *ForkCall = emitRuntimeCall(ForkRTFn, OMPRegionFnArgs, "", b);
+  //auto *ForkCall = emitRuntimeCall(ForkRTFn, OMPRegionFnArgs, "", b);
   ExtractedFnCI->eraseFromParent();
   RegionFn->eraseFromParent();
 }

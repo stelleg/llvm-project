@@ -100,7 +100,7 @@ bool TapirRaceDetectWrapperPass::runOnFunction(Function &F) {
   auto &TI = getAnalysis<TaskInfoWrapperPass>().getTaskInfo();
   auto &DI = getAnalysis<DependenceAnalysisWrapperPass>().getDI();
   auto &SE = getAnalysis<ScalarEvolutionWrapperPass>().getSE();
-  auto *TLI = &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
+  auto *TLI = &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
   Info.reset(new RaceInfo(&F, DT, LI, TI, DI, SE, TLI));
   return false;
 }
@@ -298,7 +298,8 @@ public:
     std::vector<std::string> AllABIListFiles;
     AllABIListFiles.insert(AllABIListFiles.end(), ClABIListFiles.begin(),
                            ClABIListFiles.end());
-    ABIList.set(SpecialCaseList::createOrDie(AllABIListFiles));
+    ABIList.set(SpecialCaseList::createOrDie(AllABIListFiles, 
+                                             *vfs::getRealFileSystem()));
   }
 
   void addFunctionArgument(Value *Arg);
@@ -856,7 +857,7 @@ bool AccessPtrAnalysis::checkDependence(std::unique_ptr<Dependence> D,
   if (!I1Spindle->isSharedEH() && !I2Spindle->isSharedEH()) {
     if (!CommonLoop->contains(CommonTask->getEntry())) {
       const Loop *CommonTaskLoop = LI.getLoopFor(CommonTask->getEntry());
-      assert(!CommonTaskLoop || CommonTaskLoop->contains(CommonLoop) &&
+      assert((!CommonTaskLoop || CommonTaskLoop->contains(CommonLoop)) &&
              "Loop for common task does not contain common loop.");
       CommonLoop = CommonTaskLoop;
     }
@@ -1000,15 +1001,15 @@ bool AccessPtrAnalysis::checkOpaqueAccesses(GeneralAccess &GA1,
   // Get information about the non-opaque access.
   const Value *Ptr;
   Instruction *NonOpaque;
-  bool IsWrite;
+  //bool IsWrite;
   if (GA1.Loc) {
     Ptr = GA1.getPtr();
     NonOpaque = GA1.I;
-    IsWrite = GA1.isMod();
+    //IsWrite = GA1.isMod();
   } else { // GA2.Loc
     Ptr = GA2.getPtr();
     NonOpaque = GA2.I;
-    IsWrite = GA2.isMod();
+    //IsWrite = GA2.isMod();
   }
 
   // One access is opaque, while the other has a pointer.  For the opaque access
@@ -1062,7 +1063,7 @@ bool AccessPtrAnalysis::checkOpaqueAccesses(GeneralAccess &GA1,
   if (!I1Spindle->isSharedEH() && !I2Spindle->isSharedEH()) {
     if (!CommonLoop->contains(CommonTask->getEntry())) {
       const Loop *CommonTaskLoop = LI.getLoopFor(CommonTask->getEntry());
-      assert(!CommonTaskLoop || CommonTaskLoop->contains(CommonLoop) &&
+      assert((!CommonTaskLoop || CommonTaskLoop->contains(CommonLoop)) &&
              "Loop for common task does not contain common loop.");
       CommonLoop = CommonTaskLoop;
     }
@@ -1885,7 +1886,7 @@ void AccessPtrAnalysis::getRTPtrChecks(Loop *L, RaceInfo::ResultTy &Result,
   LLVM_DEBUG(dbgs() << "getRTPtrChecks: " << *L << "\n");
 
   AllPtrRtChecks[L] =
-    llvm::make_unique<RuntimePointerChecking>(&SE);
+    std::make_unique<RuntimePointerChecking>(&SE);
 
   RTPtrCheckAnalysis RPCA(L, *AllPtrRtChecks[L].get(), AA, SE);
   SmallPtrSet<const Value *, 16> Seen;
@@ -1919,7 +1920,7 @@ void AccessPtrAnalysis::getRTPtrChecks(Loop *L, RaceInfo::ResultTy &Result,
 
   RPCA.processAccesses(AccessToObjs);
 
-  bool CanDoRTIfNeeded = RPCA.canCheckPtrAtRT();
+  //bool CanDoRTIfNeeded = RPCA.canCheckPtrAtRT();
 
   // TODO: Do something with CanDoRTIfNeeded
 }

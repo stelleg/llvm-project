@@ -1240,7 +1240,7 @@ public:
     bool PreserveLCSSA = mustPreserveAnalysisID(LCSSAID);
 
     LoopUnrollResult Result = tryToUnrollLoop(
-        L, DT, LI, SE, TTI, AC, ORE, nullptr, nullptr, PreserveLCSSA, OptLevel,
+        L, DT, LI, SE, TTI, AC, TI, ORE, nullptr, nullptr, PreserveLCSSA, OptLevel,
         OnlyWhenForced, ForgetAllSCEV, ProvidedCount, ProvidedThreshold,
         ProvidedAllowPartial, ProvidedRuntime, ProvidedUpperBound,
         ProvidedAllowPeeling, ProvidedAllowProfileBasedPeeling,

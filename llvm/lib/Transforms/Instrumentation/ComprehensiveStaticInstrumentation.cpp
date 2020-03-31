@@ -44,6 +44,7 @@
 #include "llvm/Transforms/Utils/LoopSimplify.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 #include "llvm/Transforms/Utils/TapirUtils.h"
+#include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
 
@@ -2435,8 +2436,6 @@ bool ComprehensiveStaticInstrumentationLegacyPass::runOnModule(Module &M) {
     return false;
 
   CallGraph *CG = &getAnalysis<CallGraphWrapperPass>().getCallGraph();
-  const TargetLibraryInfo *TLI =
-      &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
   auto GetDomTree = [this](Function &F) -> DominatorTree & {
     return this->getAnalysis<DominatorTreeWrapperPass>(F).getDomTree();
   };
@@ -2450,7 +2449,7 @@ bool ComprehensiveStaticInstrumentationLegacyPass::runOnModule(Module &M) {
     return this->getAnalysis<TaskInfoWrapperPass>(F).getTaskInfo();
   };
 
-  bool res = CSIImpl(M, CG, GetDomTree, GetLoopInfo, GetTaskInfo, TLI, GetSE,
+  bool res = CSIImpl(M, CG, GetDomTree, GetLoopInfo, GetTaskInfo, nullptr, GetSE,
                      Options).run();
 
   verifyModule(M, &llvm::errs());

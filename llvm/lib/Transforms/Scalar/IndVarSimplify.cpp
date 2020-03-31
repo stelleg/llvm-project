@@ -3051,12 +3051,10 @@ bool IndVarSimplify::run(Loop *L) {
   // See if we need to create a canonical IV that starts at 0.  Right now we
   // only check for a Tapir loop, but this check might be generalized.
   bool IsTapirLoop = (nullptr != getTaskIfTapirLoop(L, TI));
-  if (IsTapirLoop)
+  if (IsTapirLoop){
     Changed |= ensureZeroStartIV(L, DL, SE, DT);
-
-  const SCEV *BackedgeTakenCount = SE->getBackedgeTakenCount(L);
-  if (IsTapirLoop)
     BackedgeTakenCount = SE->getExitCount(L, L->getLoopLatch());
+  }
 
   // Create a rewriter object which we'll use to transform the code with.
   SCEVExpander Rewriter(*SE, DL, "indvars");

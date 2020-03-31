@@ -2278,7 +2278,7 @@ MemorySSAAnalysis::Result MemorySSAAnalysis::run(Function &F,
                                                  FunctionAnalysisManager &AM) {
   auto &DT = AM.getResult<DominatorTreeAnalysis>(F);
   auto &AA = AM.getResult<AAManager>(F);
-  TaskInfo *TI = AssumeDRF ? (&AM.getResult<TaskAnalysis>(F)) : nullptr;
+  TaskInfo *TI = EnableDRF ? (&AM.getResult<TaskAnalysis>(F)) : nullptr;
   return MemorySSAAnalysis::Result(std::make_unique<MemorySSA>(F, &AA, &DT, TI));
 }
 

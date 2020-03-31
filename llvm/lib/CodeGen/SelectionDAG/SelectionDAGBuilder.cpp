@@ -7052,7 +7052,6 @@ void SelectionDAGBuilder::visitIntrinsicCall(const CallInst &I,
                              DAG.getZExtOrTrunc(Const, getCurSDLoc(), DestVT)));
     return;
   }
-  }
     // Tapir intrinsics
     //
     // Lower the starting point of a sync region to a no-op.

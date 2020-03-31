@@ -586,7 +586,7 @@ struct AddressSanitizer {
                    bool CompileKernel = false, bool Recover = false,
                    bool UseAfterScope = false)
       : UseAfterScope(UseAfterScope || ClUseAfterScope), TI(TI),
-        GlobalsMD(GlobalsMD) {
+        GlobalsMD(*GlobalsMD) {
     this->Recover = ClRecover.getNumOccurrences() > 0 ? ClRecover : Recover;
     this->CompileKernel =
         ClEnableKasan.getNumOccurrences() > 0 ? ClEnableKasan : CompileKernel;
@@ -725,12 +725,12 @@ public:
   }
 
   bool runOnFunction(Function &F) override {
-    GlobalsMetadata &GlobalsMD =
+    GlobalsMetadata GlobalsMD =
         getAnalysis<ASanGlobalsMetadataWrapperPass>().getGlobalsMD();
     TaskInfo &TI = getAnalysis<TaskInfoWrapperPass>().getTaskInfo();
     const TargetLibraryInfo *TLI =
         &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
-    AddressSanitizer ASan(*F.getParent(), &GlobalsMD, CompileKernel, Recover,
+    AddressSanitizer ASan(*F.getParent(), &GlobalsMD, TI, CompileKernel, Recover,
                           UseAfterScope);
     return ASan.instrumentFunction(F, TLI);
   }
@@ -1180,7 +1180,7 @@ PreservedAnalyses AddressSanitizerPass::run(Function &F,
   if (auto *R = MAM.getCachedResult<ASanGlobalsMetadataAnalysis>(M)) {
     TaskInfo &TI = AM.getResult<TaskAnalysis>(F);
     const TargetLibraryInfo *TLI = &AM.getResult<TargetLibraryAnalysis>(F);
-    AddressSanitizer Sanitizer(M, R, CompileKernel, Recover, UseAfterScope);
+    AddressSanitizer Sanitizer(M, R, TI, CompileKernel, Recover, UseAfterScope);
     if (Sanitizer.instrumentFunction(F, TLI))
       return PreservedAnalyses::none();
     return PreservedAnalyses::all();

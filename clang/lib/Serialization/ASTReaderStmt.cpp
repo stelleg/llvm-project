@@ -1552,10 +1552,10 @@ void ASTStmtReader::VisitCXXForRangeStmt(CXXForRangeStmt *S) {
 
 void ASTStmtReader::VisitCXXForallRangeStmt(CXXForallRangeStmt *S) {
   VisitStmt(S);
-  S->ForLoc = ReadSourceLocation();
-  S->CoawaitLoc = ReadSourceLocation();
-  S->ColonLoc = ReadSourceLocation();
-  S->RParenLoc = ReadSourceLocation();
+  S->ForLoc = readSourceLocation();
+  S->CoawaitLoc = readSourceLocation();
+  S->ColonLoc = readSourceLocation();
+  S->RParenLoc = readSourceLocation();
   S->setInit(Record.readSubStmt());
   S->setRangeStmt(Record.readSubStmt());
   S->setBeginStmt(Record.readSubStmt());
@@ -2562,19 +2562,19 @@ void ASTStmtReader::VisitOMPTargetTeamsDistributeSimdDirective(
 
 void ASTStmtReader::VisitCilkSpawnStmt(CilkSpawnStmt *S) {
   VisitStmt(S);
-  S->setSpawnLoc(ReadSourceLocation());
+  S->setSpawnLoc(readSourceLocation());
   S->setSpawnedStmt(Record.readSubStmt());
 }
 
 void ASTStmtReader::VisitCilkSpawnExpr(CilkSpawnExpr *E) {
   VisitExpr(E);
-  E->setSpawnLoc(ReadSourceLocation());
+  E->setSpawnLoc(readSourceLocation());
   E->setSpawnedExpr(Record.readSubExpr());
 }
 
 void ASTStmtReader::VisitCilkSyncStmt(CilkSyncStmt *S) {
   VisitStmt(S);
-  S->setSyncLoc(ReadSourceLocation());
+  S->setSyncLoc(readSourceLocation());
 }
 
 void ASTStmtReader::VisitCilkForStmt(CilkForStmt *S) {
@@ -2583,35 +2583,35 @@ void ASTStmtReader::VisitCilkForStmt(CilkForStmt *S) {
   S->setCond(Record.readSubExpr());
   // S->setConditionVariable(Record.getContext(), ReadDeclAs<VarDecl>());
   S->setInc(Record.readSubExpr());
-  S->setLoopVariable(Record.getContext(), ReadDeclAs<VarDecl>());
+  S->setLoopVariable(Record.getContext(), readDeclAs<VarDecl>());
   S->setBody(Record.readSubStmt());
-  S->setCilkForLoc(ReadSourceLocation());
-  S->setLParenLoc(ReadSourceLocation());
-  S->setRParenLoc(ReadSourceLocation());
+  S->setCilkForLoc(readSourceLocation());
+  S->setLParenLoc(readSourceLocation());
+  S->setRParenLoc(readSourceLocation());
 }
 
 //===----------------------------------------------------------------------===//
 void ASTStmtReader::VisitSpawnStmt(SpawnStmt *S) {
   VisitStmt(S);
-  S->setSpawnLoc(ReadSourceLocation());
+  S->setSpawnLoc(readSourceLocation());
   S->setSpawnedStmt(Record.readSubStmt());
 }
 
 void ASTStmtReader::VisitSyncStmt(SyncStmt *S) {
   VisitStmt(S);
-  S->setSyncLoc(ReadSourceLocation());
+  S->setSyncLoc(readSourceLocation());
 }
 
 void ASTStmtReader::VisitForallStmt(ForallStmt *S) {
   VisitStmt(S);
   S->setInit(Record.readSubStmt());
   S->setCond(Record.readSubExpr());
-  S->setConditionVariable(Record.getContext(), ReadDeclAs<VarDecl>());
+  S->setConditionVariable(Record.getContext(), readDeclAs<VarDecl>());
   S->setInc(Record.readSubExpr());
   S->setBody(Record.readSubStmt());
-  S->setForallLoc(ReadSourceLocation());
-  S->setLParenLoc(ReadSourceLocation());
-  S->setRParenLoc(ReadSourceLocation());
+  S->setForallLoc(readSourceLocation());
+  S->setLParenLoc(readSourceLocation());
+  S->setRParenLoc(readSourceLocation());
 }
 
 // ASTReader Implementation

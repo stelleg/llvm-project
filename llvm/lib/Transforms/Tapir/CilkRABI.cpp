@@ -821,7 +821,7 @@ AllocaInst *CilkRABI::CreateStackFrame(Function &F) {
   AllocaInst *SF = B.CreateAlloca(SFTy, DL.getAllocaAddrSpace(),
                                   /*ArraySize*/nullptr,
                                   /*Name*/stack_frame_name);
-  SF->setAlignment(8);
+  SF->setAlignment(Align(8));
 
   return SF;
 }
@@ -884,7 +884,7 @@ bool CilkRABI::makeFunctionDetachable(Function &Extracted) {
   while (IRBuilder<> *AtExit = EE.Next()) {
     if (isa<ReturnInst>(AtExit->GetInsertPoint()))
       AtExit->CreateCall(GetCilkParentEpilogueFn(), Args, "");
-    else if (ResumeInst *RI = dyn_cast<ResumeInst>(AtExit->GetInsertPoint())) {
+    else if (isa<ResumeInst>(AtExit->GetInsertPoint())) {
       // TODO: Handle exceptions.
       // /*
       //   sf.flags = sf.flags | CILK_FRAME_EXCEPTING;

@@ -286,7 +286,7 @@ void PTXLoop::postProcessOutline(TapirLoopInfo &TL, TaskOutlineInfo &Out,
 
   bool Fail = PTXTargetMachine->addPassesToEmitFile(
       *PassManager, Ostr, &Ostr,
-      TargetMachine::CodeGenFileType::CGFT_AssemblyFile, false);
+      CodeGenFileType::CGFT_AssemblyFile, false);
   assert(!Fail && "Failed to emit PTX");
 
   PassManager->run(PTXM);

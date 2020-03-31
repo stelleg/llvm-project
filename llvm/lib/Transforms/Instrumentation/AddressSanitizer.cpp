@@ -818,7 +818,7 @@ public:
   }
 
   bool runOnFunction(Function &F) override {
-    GlobalsMetadata &GlobalsMD =
+    GlobalsMetadata GlobalsMD =
         getAnalysis<ASanGlobalsMetadataWrapperPass>().getGlobalsMD();
     const StackSafetyGlobalInfo *const SSGI =
         ClUseStackSafety

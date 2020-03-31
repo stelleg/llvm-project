@@ -4525,6 +4525,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
       D.Diag(diag::err_drv_cilk_unsupported);
   Args.AddLastArg(CmdArgs, options::OPT_ftapir_EQ);
   Args.AddLastArg(CmdArgs, options::OPT_fkokkos);
+  Args.AddLastArg(CmdArgs, options::OPT_fkokkos_no_init);  
   Args.AddLastArg(CmdArgs, options::OPT_fflecsi);
 
   // Forward flags for OpenMP. We don't do this if the current action is an

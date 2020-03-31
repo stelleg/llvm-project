@@ -1580,10 +1580,13 @@ def fomit_frame_pointer : Flag<["-"], "fomit-frame-pointer">, Group<f_Group>;
 // kitsune: Tapir, Kokkos and FleCSI support.
 def fkokkos : Flag<["-"], "fkokkos">, Group<f_Group>, 
   Flags<[CC1Option, NoArgumentUnused]>, 
-  HelpText<"Enable Kokkos extensions: recognition and code generation">;
+  HelpText<"Enable Kokkos extensions: recognition and custom code generation">;
+def fkokkos_no_init : Flag<["-"], "fkokkos-no-init">, Group<f_Group>, 
+  Flags<[CC1Option, NoArgumentUnused]>, 
+  HelpText<"Skip code gen of Kokkos initialization (and finalize) calls.">;
 def fflecsi : Flag<["-"], "fflecsi">, Group<f_Group>, 
   Flags<[CC1Option,NoArgumentUnused]>, 
-  HelpText<"Enable FleCSI extensions: recognition and code generation">; 
+  HelpText<"Enable FleCSI extensions: recognition and custome code generation">; 
 
 def fopenmp : Flag<["-"], "fopenmp">, Group<f_Group>, Flags<[CC1Option, NoArgumentUnused]>,
   HelpText<"Parse OpenMP pragmas and generate parallel code.">;

@@ -526,6 +526,9 @@ void tools::gnutools::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   // The profile runtime also needs access to system libraries.
   getToolChain().addProfileRTLibs(Args, CmdArgs);
 
+  // Add any kitsune-centric runtime libraries. 
+  getToolChain().AddKitsuneLibArgs(Args, CmdArgs);
+  
   addCSIRuntime(ToolChain, Args, CmdArgs);
   addCilktoolRuntime(ToolChain, Args, CmdArgs);
 

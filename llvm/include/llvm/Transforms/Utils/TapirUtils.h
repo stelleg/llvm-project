@@ -267,6 +267,7 @@ public:
     case TapirLoopHints::ST_END:
       return "Unknown";
     }
+    return "Unknown";
   }
 
   TapirLoopHints(const Loop *L)

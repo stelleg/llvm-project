@@ -728,7 +728,7 @@ public:
   }
 
   bool runOnFunction(Function &F) override {
-    GlobalsMetadata &GlobalsMD =
+    GlobalsMetadata GlobalsMD =
         getAnalysis<ASanGlobalsMetadataWrapperPass>().getGlobalsMD();
     TaskInfo &TI = getAnalysis<TaskInfoWrapperPass>().getTaskInfo();
     const TargetLibraryInfo *TLI =

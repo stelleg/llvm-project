@@ -76,6 +76,7 @@ private:
 
 private:
   TapirTarget *Target = nullptr;
+  function_ref<TapirTarget *(Function &)> GetTarget;
 
   Module &M;
 
@@ -366,6 +367,7 @@ void TapirToTargetImpl::processFunction(
   LLVM_DEBUG(dbgs() << "Tapir: Processing function " << F.getName() << "\n");
 
   // Get the necessary analysis results.
+  Target = GetTarget(F); 
   DominatorTree &DT = GetDT(F);
   TaskInfo &TI = GetTI(F);
   splitTaskFrameCreateBlocks(F, &DT, &TI);

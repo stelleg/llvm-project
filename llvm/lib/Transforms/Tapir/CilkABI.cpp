@@ -349,8 +349,11 @@ CallInst *CilkABI::EmitCilkSetJmp(IRBuilder<> &B, Value *SF) {
   Value *Buf = GEP(B, SF, StackFrameFields::ctx);
 
   // Store the frame pointer in the 0th slot
+  auto GetFramePointerFn = Intrinsic::getDeclaration(
+      &M, Intrinsic::frameaddress,
+      B.getInt8PtrTy(M.getDataLayout().getAllocaAddrSpace()));
   Value *FrameAddr =
-    B.CreateCall(Intrinsic::getDeclaration(&M, Intrinsic::frameaddress),
+    B.CreateCall(GetFramePointerFn,
                  ConstantInt::get(Int32Ty, 0));
 
   Value *FrameSaveSlot = GEP(B, Buf, 0);

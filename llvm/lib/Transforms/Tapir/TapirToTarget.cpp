@@ -342,9 +342,11 @@ void TapirToTargetImpl::processFunction(
 bool TapirToTargetImpl::run() {
   // Add functions that detach to the work list.
   SmallVector<Function *, 4> WorkList;
-  for (Function &F : M)
+  for (Function &F : M){
+    Target = GetTarget(F);  
     if (Target->shouldProcessFunction(F))
       WorkList.push_back(&F);
+  }
 
   if (WorkList.empty())
     return false;

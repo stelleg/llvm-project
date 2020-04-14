@@ -14,35 +14,16 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/Transforms/Tapir/RealmABI.h"
-//#include "llvm/ADT/Statistic.h"
-//#include "llvm/Analysis/AssumptionCache.h"
-//#include "llvm/Analysis/LoopInfo.h"
-//#include "llvm/Analysis/LoopIterator.h"
-//#include "llvm/Analysis/OptimizationRemarkEmitter.h"
-//#include "llvm/Analysis/ScalarEvolution.h"
-//#include "llvm/Analysis/ScalarEvolutionExpander.h"
 #include "llvm/Analysis/TapirTaskInfo.h"
-//#include "llvm/IR/DebugInfoMetadata.h"
-//#include "llvm/IR/Dominators.h"
 #include "llvm/IR/Function.h"
-//#include "llvm/IR/InlineAsm.h"
-//#include "llvm/IR/InstIterator.h"
 #include "llvm/IR/IRBuilder.h"
-//#include "llvm/IR/TypeBuilder.h"
-//#include "llvm/IR/Verifier.h"
 #include "llvm/Transforms/Tapir/Outline.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-//#include "llvm/Transforms/Utils/EscapeEnumerator.h"
-//#include "llvm/Transforms/Utils/Local.h"
 #include "llvm/Transforms/Utils/TapirUtils.h"
-//#include "llvm/Transforms/Utils/ValueMapper.h"
 
 using namespace llvm;
 
 #define DEBUG_TYPE "realmabi"
-
-//typedef int (realmSpawn_t)(TaskFuncPtr fxn, const void *args, size_t arglen,
-//			   void *user_data, size_t user_data_len);
 
 FunctionCallee RealmABI::get_realmGetNumProcs() {
   if(RealmGetNumProcs)
@@ -99,18 +80,14 @@ FunctionCallee RealmABI::get_realmInitRuntime() {
   FunctionType *FTy = FunctionType::get(
       Type::getInt32Ty(C),                            // returns int
       { Type::getInt32Ty(C),                          // int argc
-	PointerType::getUnqual(Type::getInt8PtrTy(C)) // char **argv
+        PointerType::getUnqual(Type::getInt8PtrTy(C)) // char **argv
       }, false);
+
   RealmInitRuntime = M.getOrInsertFunction("realmInitRuntime", FTy, AL);
   return RealmInitRuntime;
 }
 
 #define REALM_FUNC(name) get_##name()
-
-//can I replace the following by just using the realm_task_pointer_t type in realm_c.h?
-//typedef void (*TaskFuncPtr)(const void *args, size_t arglen,
-//			   const void *user_data, size_t user_data_len,
-//			   unsigned long long proc);
 
 RealmABI::RealmABI(Module &M) : TapirTarget(M) {
   LLVMContext &C = M.getContext();
@@ -123,8 +100,12 @@ RealmABI::RealmABI(Module &M) : TapirTarget(M) {
 	     DL.getIntPtrType(C),   // size_t arglen 
 	     Type::getInt8PtrTy(C), // const void *user_data
 	     DL.getIntPtrType(C),   // size_t user_data_len
-	     Type::getInt64Ty(C)    // unsigned long long proc
-           }, false));
+	     DL.getIntPtrType(C)    // unsigned long long proc
+	   }, false));
+}
+
+RealmABI::~RealmABI() {
+  //call something that deletes the context struct
 }
 
 /// Lower a call to get the grainsize of this Tapir loop.
@@ -191,17 +172,19 @@ void RealmABI::processSubTaskCall(TaskOutlineInfo &TOI, DominatorTree &DT) {
   // realmSync from the kitsune-rt realm wrapper.
   IRBuilder<> CallerIRBuilder(ReplCall);
   Value *OutlinedFnPtr = CallerIRBuilder.CreatePointerBitCastOrAddrSpaceCast(
-      Outlined, TaskFuncPtrTy);
+	                                 Outlined, TaskFuncPtrTy);
   AllocaInst *CallerArgStruct = cast<AllocaInst>(ReplCall->getArgOperand(0));
   Type *ArgsTy = CallerArgStruct->getAllocatedType();
   Value *ArgStructPtr = CallerIRBuilder.CreateBitCast(CallerArgStruct,
                                                       Type::getInt8PtrTy(C));
   ConstantInt *ArgSize = ConstantInt::get(DL.getIntPtrType(C),
                                           DL.getTypeAllocSize(ArgsTy));
+  ConstantInt *ArgNum = ConstantInt::get(DL.getIntPtrType(C),
+					 ArgsTy->getArrayNumElements());
   CallInst *Call = CallerIRBuilder.CreateCall(
       REALM_FUNC(realmSpawn), { OutlinedFnPtr, 
 	                        ArgStructPtr,
-                                ArgSize,
+                                ArgNum,
 	                        ArgStructPtr,
 	                        ArgSize});
   Call->setDebugLoc(ReplCall->getDebugLoc());
@@ -227,9 +210,9 @@ void RealmABI::processSubTaskCall(TaskOutlineInfo &TOI, DominatorTree &DT) {
 }
 
 #if 0
-// Adds entry basic blocks to body of extracted, replacing extracted, and adds
-// necessary code to call, i.e. storing arguments in struct
-Function* formatFunctionToRealmF(Function* extracted, Instruction* ical){
+// Changes the Outlined function from Tapir into the right form
+// for use with the Realm runtime
+Function* RealmABI::formatFunctionToRealmF(Function* extracted, Instruction* ical){
   std::vector<Value*> LoadedCapturedArgs;
   CallInst *cal = dyn_cast<CallInst>(ical);
 
@@ -255,8 +238,7 @@ Function* formatFunctionToRealmF(Function* extracted, Instruction* ical){
       typeArray,
       false);
 
-  Function *OutlinedFn = Function::Create(
-      OutlinedFnTy, GlobalValue::InternalLinkage, ".realm_outlined.", M);
+  Function *OutlinedFn = Function::Create(OutlinedFnTy, GlobalValue::InternalLinkage, ".realm_outlined.", M);
   OutlinedFn->addFnAttr(Attribute::AlwaysInline);
   OutlinedFn->addFnAttr(Attribute::NoUnwind);
   OutlinedFn->addFnAttr(Attribute::UWTable);
@@ -310,12 +292,10 @@ Function* formatFunctionToRealmF(Function* extracted, Instruction* ical){
   assert(argc == cArgc && "Wrong number of arguments passed to outlined function"); 
 
   auto outlinedFnPtr = CallerIRBuilder.CreatePointerBitCastOrAddrSpaceCast(
-									   OutlinedFn, TypeBuilder<TaskFuncPtr, false>::get(M->getContext())); 
+  			       	   OutlinedFn, TypeBuilder<TaskFuncPtr, false>::get(M->getContext())); 
   auto argSize = ConstantInt::get(Type::getInt64Ty(C), ArgsTy->getNumElements()); 
   auto argDataSize = ConstantInt::get(Type::getInt64Ty(C), DL.getTypeAllocSize(ArgsTy)); 
   auto argsStructVoidPtr = CallerIRBuilder.CreateBitCast(callerArgStruct, Type::getInt8PtrTy(C)); 
-
-  //std::vector<Value *> callerArgs = { outlinedFnPtr, argsStructVoidPtr, argSize, argsStructVoidPtr, argDataSize}; 
 
   ArrayRef<Value *> callerArgs = { outlinedFnPtr, argsStructVoidPtr, argSize, argsStructVoidPtr, argDataSize}; 
 
@@ -393,11 +373,15 @@ void RealmABI::postProcessFunction(Function &F, bool OutliningTapirLoops) {
   LLVMContext &C = M->getContext();
   IRBuilder<> builder(F.getEntryBlock().getFirstNonPHIOrDbg());
 
-  //default values of 0 and nullptr
+  //default values of 1 and nullptr
   //TODO: handle the case where main actually has an argc and argv
-  Value* zero = ConstantInt::get(Type::getInt32Ty(C), 0);
+  Value* one = ConstantInt::get(Type::getInt32Ty(C), 1);
   Value* null = Constant::getNullValue(PointerType::getUnqual(Type::getInt8PtrTy(C)));
-  ArrayRef<Value*> initArgs = {zero, null};
+
+  one->dump();
+  null->dump();
+
+  ArrayRef<Value*> initArgs = {one, null};
 
   builder.CreateCall(REALM_FUNC(realmInitRuntime), initArgs);
 }

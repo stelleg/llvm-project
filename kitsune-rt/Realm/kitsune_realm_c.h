@@ -28,8 +28,8 @@
 extern "C" {
 #endif
 
-  typedef struct context context;
-  //context* getRealmCTX();
+  //typedef struct context context;
+  struct context* getRealmCTX();
   int realmInitRuntime(int argc, char** argv);
   //NOTE: realmSpawn declared and defined in wrapper.cc
   //int realmSpawn();

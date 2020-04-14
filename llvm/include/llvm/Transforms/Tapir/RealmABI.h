@@ -39,7 +39,7 @@ class RealmABI : public TapirTarget {
 
 public:
   RealmABI(Module &M);
-  ~RealmABI() {} // may need to add something to clear lists, etc.
+  ~RealmABI();
 
   Value * lowerGrainsizeCall(CallInst *GrainsizeCall) override final;
   void lowerSync(SyncInst &inst) override final;
@@ -55,7 +55,6 @@ public:
   // not used
   void processOutlinedTask(Function &F) override final {}
   void processSpawner(Function &F) override final {}
-
 
 };
 }  // end of llvm namespace

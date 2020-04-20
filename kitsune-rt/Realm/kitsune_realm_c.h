@@ -35,8 +35,7 @@ extern "C" {
   //int realmSpawn();
   int realmSync();
   size_t realmGetNumProcs();
-  //void* realmCreateRegion_int(int* data);
-  //void realmDestroyRegion(void *region);
+  void realmFinalize();
 
 #ifdef __cplusplus
 }

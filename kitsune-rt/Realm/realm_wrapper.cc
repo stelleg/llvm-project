@@ -91,7 +91,7 @@ extern "C" {
     return;
   }
   
-  int realm_sync() {
+  int realmSync() {
     context *ctx = getRealmCTX();
 
     //create an event that does not trigger until all previous events have triggered
@@ -105,5 +105,14 @@ extern "C" {
     e.wait();
 
     return 0;
+  }
+
+  void realmFinalize() {
+    if ( _globalCTX) {
+      delete _globalCTX;
+      return;
+    }
+    else
+      return;
   }
 }

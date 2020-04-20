@@ -30,12 +30,14 @@ class RealmABI : public TapirTarget {
   FunctionCallee RealmSpawn = nullptr;
   FunctionCallee RealmSync = nullptr;
   FunctionCallee RealmInitRuntime = nullptr;
+  FunctionCallee RealmFinalize = nullptr;
 
   //Accessors for opaque Realm RTS functions
   FunctionCallee get_realmGetNumProcs();
   FunctionCallee get_realmSpawn();
   FunctionCallee get_realmSync();
   FunctionCallee get_realmInitRuntime();
+  FunctionCallee get_realmFinalize();
 
 public:
   RealmABI(Module &M);
@@ -51,6 +53,7 @@ public:
   void postProcessFunction(Function &F, bool OutliningTapirLoops) 
     override final;
   void postProcessHelper(Function &F) override final;
+  Function* formatFunctionToRealmF(Function* extracted, Instruction* ical);
 
   // not used
   void processOutlinedTask(Function &F) override final {}

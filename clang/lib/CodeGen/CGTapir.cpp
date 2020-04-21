@@ -159,6 +159,10 @@ void CodeGenFunction::EmitForallStmt(const ForallStmt &S,
 
   // Emit the (currently empty) detach block
   EmitBlock(Detach);
+  auto OldAllocaInsertPt = AllocaInsertPt; 
+  llvm::Value *Undef = llvm::UndefValue::get(Int32Ty);
+  AllocaInsertPt = new llvm::BitCastInst(Undef, Int32Ty, "",
+                                             Detach);
 
   // Extract the DeclStmt from the statement init
   const DeclStmt *DS = cast<DeclStmt>(S.getInit());
@@ -198,6 +202,10 @@ void CodeGenFunction::EmitForallStmt(const ForallStmt &S,
 
   ReplaceAllUsesInCurrentBlock(InductionDetachMap);
 
+  llvm::Instruction* ptr = AllocaInsertPt; 
+  AllocaInsertPt = OldAllocaInsertPt; 
+  ptr->eraseFromParent(); 
+
   EmitBlock(Reattach.getBlock());
   Builder.CreateReattach(Increment, SRStart);
 
@@ -221,6 +229,7 @@ void CodeGenFunction::EmitForallStmt(const ForallStmt &S,
   Builder.CreateSync(End, SRStart);
 
   EmitBlock(End, true);
+
 }
 
 void CodeGenFunction::EmitCXXForallRangeStmt(const CXXForallRangeStmt &S,
@@ -285,6 +294,10 @@ void CodeGenFunction::EmitCXXForallRangeStmt(const CXXForallRangeStmt &S,
 
   // Emit the (currently empty) detach block
   EmitBlock(Detach);
+  auto OldAllocaInsertPt = AllocaInsertPt; 
+  llvm::Value *Undef = llvm::UndefValue::get(Int32Ty);
+  AllocaInsertPt = new llvm::BitCastInst(Undef, Int32Ty, "",
+                                             Detach);
 
   // Extract the DeclStmt from the statement init
   const DeclStmt *DS = cast<DeclStmt>(S.getBeginStmt());
@@ -323,6 +336,10 @@ void CodeGenFunction::EmitCXXForallRangeStmt(const CXXForallRangeStmt &S,
   /////////////////////////////////////////////////////////////////
 
   ReplaceAllUsesInCurrentBlock(InductionDetachMap);
+
+  llvm::Instruction* ptr = AllocaInsertPt; 
+  AllocaInsertPt = OldAllocaInsertPt; 
+  ptr->eraseFromParent(); 
 
   EmitBlock(Reattach.getBlock());
   Builder.CreateReattach(Increment, SRStart);

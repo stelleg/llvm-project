@@ -353,6 +353,7 @@ void RealmABI::postProcessFunction(Function &F, bool OutliningTapirLoops) {
     // Don't do any postprocessing when outlining Tapir loops.
     return;
 
+  //if (F.getName() == "main")
   Module *M = F.getParent();
   LLVMContext &C = M->getContext();
   IRBuilder<> builder(F.getEntryBlock().getFirstNonPHIOrDbg());
@@ -365,6 +366,7 @@ void RealmABI::postProcessFunction(Function &F, bool OutliningTapirLoops) {
   ArrayRef<Value*> initArgs = {one, null};
 
   builder.CreateCall(REALM_FUNC(realmInitRuntime), initArgs);
+  return;
 }
 
 void RealmABI::postProcessHelper(Function &F) {}

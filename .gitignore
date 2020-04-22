@@ -57,6 +57,6 @@ autoconf/autom4te.cache
 .clangd
 
 # Kitsune
-cheatsheet.sh
-do_all.sh
+kitsune-tests/forall/cheatsheet.sh
+kitsune-tests/forall/do_all.sh
 

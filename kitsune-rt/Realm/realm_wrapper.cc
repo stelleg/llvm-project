@@ -17,6 +17,7 @@ extern "C" {
   } context;
 
   static context *_globalCTX;  //global variable
+  static bool initCalled = false; //global variable
 
   context * getRealmCTX() {
     if ( _globalCTX) 
@@ -26,6 +27,9 @@ extern "C" {
   }
   
   int realmInitRuntime(int argc, char** argv) {
+    if (initCalled)
+      return 0;
+
     _globalCTX = new context();
 
     _globalCTX->rt.init(&argc, &argv); 
@@ -41,10 +45,12 @@ extern "C" {
     for(auto it = locprocquery.begin(); it != locprocquery.end(); it++)
       _globalCTX->procs.push_back(*it);
 
-    (_globalCTX->procgroup).create_group(_globalCTX->procs);
+    Realm::Processor first_proc = _globalCTX->procs[0];
+    _globalCTX->procgroup = first_proc.create_group(_globalCTX->procs);
 
     _globalCTX->cur_task = Realm::Processor::TASK_ID_FIRST_AVAILABLE;
 
+    initCalled = true;
     return 0;
   }
 
@@ -70,6 +76,7 @@ extern "C" {
     context *ctx = getRealmCTX();
 
     Realm::Processor::TaskFuncID taskID = ctx->cur_task;
+    ctx->cur_task++;
 
     //get a processor to run on
     Realm::Processor p = ctx->procgroup; //spawn on the group to enable Realm's magic load-balancing
@@ -87,7 +94,6 @@ extern "C" {
     //spawn the task
     Realm::Event e2 = p.spawn(taskID, args, arglen, e1, 0); //predicated on the completion of the task's registration
     ctx->events.insert(e2);
-
     return;
   }
   
@@ -100,10 +106,14 @@ extern "C" {
 
     //can clear the events in the list now and insert only the sync event
     ctx->events.clear();
+    ctx->events.insert(e);
 
     // Do not return until sync is complete
     e.wait();
-
+    //while (!e.has_triggered()) {
+    //  std::cout << "not done yet" << std::endl;
+    //  continue;
+    //} std:: cout << "done waiting" << std::endl;
     return 0;
   }
 

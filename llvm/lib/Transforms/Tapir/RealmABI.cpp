@@ -38,6 +38,31 @@ FunctionCallee RealmABI::get_realmGetNumProcs() {
   return RealmGetNumProcs;
 }
 
+static StructType* getBarrierType(LLVMContext &C){
+  auto eventTy = StructType::get(Type::getInt64Ty(C));
+  return StructType::get(eventTy, Type::getInt64Ty(C));
+}
+
+FunctionCallee RealmABI::get_createRealmBarrier(){
+  if(CreateBar) return CreateBar; 
+  LLVMContext &C = M.getContext(); 
+
+  AttributeList AL; 
+  FunctionType *FTy = FunctionType::get(
+    getBarrierType(C), {}, false);
+  CreateBar = M.getOrInsertFunction("createRealmBarrier", FTy, AL);
+}
+
+FunctionCallee RealmABI::get_destroyRealmBarrier(){
+  if(DestroyBar) return DestroyBar; 
+  LLVMContext &C = M.getContext(); 
+
+  AttributeList AL; 
+  FunctionType *FTy = FunctionType::get(
+    Type::getVoidTy(C), {getBarrierType(C)}, false);
+  DestroyBar = M.getOrInsertFunction("destroyRealmBarrier", FTy, AL);
+}
+
 FunctionCallee RealmABI::get_realmSpawn() {
   if(RealmSpawn)
     return RealmSpawn;
@@ -51,8 +76,7 @@ FunctionCallee RealmABI::get_realmSpawn() {
       { TaskFuncPtrTy,         // TaskFuncPtr fxn
         Type::getInt8PtrTy(C), // const void *args
         DL.getIntPtrType(C),   // size_t arglen
-        Type::getInt8PtrTy(C), // void *user_data
-        DL.getIntPtrType(C)    // size_t user_data_len
+        getBarrierType(C)
       }, false);
   RealmSpawn = M.getOrInsertFunction("realmSpawn", FTy, AL);
   return RealmSpawn;
@@ -65,7 +89,9 @@ FunctionCallee RealmABI::get_realmSync() {
   LLVMContext &C = M.getContext(); 
   AttributeList AL;
   // TODO: Set appropriate function attributes.
-  FunctionType *FTy = FunctionType::get(Type::getInt32Ty(C), {}, false);
+  FunctionType *FTy = FunctionType::get(Type::getInt32Ty(C), {
+    getBarrierType(C)
+    }, false);
   RealmSync = M.getOrInsertFunction("realmSync", FTy, AL);
   return RealmSync;
 }
@@ -153,13 +179,36 @@ Value *RealmABI::lowerGrainsizeCall(CallInst *GrainsizeCall) {
   return Grainsize;
 }
 
+Value *RealmABI::getOrCreateBarrier(Value *SyncRegion, Function *F) {
+  LLVMContext &C = M.getContext();
+  Value* barrier;
+  if((barrier = SyncRegionToBarrier[SyncRegion]))
+    return barrier;
+  else {
+    barrier = CallInst::Create(get_createRealmBarrier(), {}, "",
+                            F->getEntryBlock().getTerminator());
+    SyncRegionToBarrier[SyncRegion] = barrier;
+
+    // Make sure we destroy the barrier at all exit points to prevent memory leaks
+    for(BasicBlock &BB : *F) {
+      if(isa<ReturnInst>(BB.getTerminator())){
+        CallInst::Create(get_destroyRealmBarrier(), {barrier}, "",
+                         BB.getTerminator());
+      }
+    }
+
+    return barrier;
+  }
+}
+
 void RealmABI::lowerSync(SyncInst &SI) {
   IRBuilder<> builder(&SI); 
-
-  std::vector<Value *> args;  //realmSync takes no arguments
-  auto sincwait = REALM_FUNC(realmSync);
-  //auto sincwait = get_realmSync();  // why don't we just do this? no macro
-  builder.CreateCall(sincwait, args);
+  auto F = SI.getParent()->getParent(); 
+  auto& C = M.getContext(); 
+  Value* SR = SI.getSyncRegion(); 
+  auto barrier = getOrCreateBarrier(SR, F); 
+  std::vector<Value *> args = {barrier}; 
+  builder.CreateCall(get_realmSync(), args);
 
   BranchInst *PostSync = BranchInst::Create(SI.getSuccessor(0));
   ReplaceInstWithInst(&SI, PostSync);
@@ -254,11 +303,9 @@ Function* RealmABI::formatFunctionToRealmF(Function* extracted, Instruction* ica
   auto argDataSize = ConstantInt::get(Type::getInt64Ty(C), DL.getTypeAllocSize(ArgsTy)); 
   auto argsStructVoidPtr = CallerIRBuilder.CreateBitCast(callerArgStruct, Type::getInt8PtrTy(C)); 
 
-  //std::vector<Value *> callerArgs = { outlinedFnPtr, argsStructVoidPtr, argSize, argsStructVoidPtr, argDataSize}; 
+  ArrayRef<Value *> callerArgs = { outlinedFnPtr, argsStructVoidPtr, argSize, barrier }; 
 
-  ArrayRef<Value *> callerArgs = { outlinedFnPtr, argsStructVoidPtr, argSize, argsStructVoidPtr, argDataSize}; 
-
-  CallerIRBuilder.CreateCall(REALM_FUNC(realmSpawn), callerArgs); 
+  CallerIRBuilder.CreateCall(get_realmSpawn(), callerArgs); 
 
   cal->eraseFromParent();
   extracted->eraseFromParent();
@@ -333,7 +380,6 @@ void RealmABI::preProcessFunction(Function &F, TaskInfo &TI,
     // Don't do any preprocessing when outlining Tapir loops.
     return;
 
-  LLVMContext &C = M.getContext();
   for (Task *T : post_order(TI.getRootTask())) {
     if (T->isRootTask())
       continue;
@@ -344,7 +390,7 @@ void RealmABI::preProcessFunction(Function &F, TaskInfo &TI,
     // Add a submit to end of task body
     IRBuilder<> footerB(Spawned->getTerminator());
     std::vector<Value*> submitArgs; // realmSync takes no args
-    footerB.CreateCall(REALM_FUNC(realmSync), submitArgs);
+    //footerB.CreateCall(get_realmSync(), submitArgs);
   }
 }
 

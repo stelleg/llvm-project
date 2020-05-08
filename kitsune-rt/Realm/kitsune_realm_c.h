@@ -33,8 +33,7 @@ extern "C" {
   struct context* getRealmCTX();
   int realmInitRuntime(int argc, char** argv);
   //NOTE: realmSpawn declared and defined in wrapper.cc
-  //int realmSpawn();
-  int realmSync();
+  //void realmSpawn();
   size_t realmGetNumProcs();
   void realmFinalize();
 

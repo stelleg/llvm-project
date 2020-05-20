@@ -6,8 +6,11 @@ Realm::Barrier createRealmBarrier();
 void realmInitRuntime(int argc, char**argv); 
 void realmSpawn(Realm::Processor::TaskFuncPtr func, 
 		  const void* args, 
-		  size_t arglen,
-      Realm::Barrier b
+		  size_t arglen
+      ); 
+void realmCall(Realm::Processor::TaskFuncPtr func, 
+		  const void* args, 
+		  size_t arglen
       ); 
 void realmSync(Realm::Barrier b); 
 size_t realmGetNumProcs(); 
@@ -27,15 +30,17 @@ void task(const void* args, uint64_t arglen, const void* mem, uint64_t memlen, R
   printf("hello from task %d / %d\n", i, realmGetNumProcs()); 
 }
 
+void taskcaller(const void* args, uint64_t arglen, const void* mem, uint64_t memlen, Realm::Processor p){
+  auto b = createRealmBarrier();
+  auto n = realmGetNumProcs(); 
+  int a[n]; for(int i=0; i < n; i++) a[i] = i;  
+  for(int i=0; i<n; i++){
+    realmSpawn(&task, (void*)(a+i), sizeof(int));
+  }
+  realmSync(b); 
+}
+
 int main(int argc, char** argv){
   realmInitRuntime(argc, argv); 
-  auto b = createRealmBarrier();
-  int n = argc > 1 ? atoi(argv[1]) : realmGetNumProcs(); 
-  int a[n]; for(int i=0; i < n; i++) a[i] = i;  
-  for(int i=0; i<1; i++){
-    realmSpawn(&task, (void*)(a+i), sizeof(int), b);
-  }
-  auto c = getRealmCTX(); 
-  c.rt.shutdown(b); 
-  c.rt.wait_for_shutdown(); 
+  realmCall(&taskcaller, nullptr, 0); 
 }

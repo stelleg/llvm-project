@@ -69,10 +69,9 @@ extern "C" {
       return 0;
   }
   
-  void realmSpawn(Realm::Processor::TaskFuncPtr func, 
+  void realmCall(Realm::Processor::TaskFuncPtr func, 
 		  const void* args, 
-		  size_t arglen,
-      Realm::Barrier b
+		  size_t arglen
       ){
     context *ctx = getRealmCTX();
     Realm::Processor::TaskFuncID taskID = ctx->cur_task++;
@@ -80,7 +79,25 @@ extern "C" {
     Realm::CodeDescriptor cd = Realm::CodeDescriptor(func);
     const Realm::ProfilingRequestSet prs;  //We don't care what it is for now, the default is fine
     Realm::Event e1 = p.register_task(taskID, cd, prs);
+    auto e = p.spawn(taskID, args, arglen, e1); //predicated on the completion of the task's registration
+    e.external_wait(); 
+    return;
+  }
+
+  void realmArrive(Realm::Barrier b){
     b.alter_arrival_count(1); 
+  }
+
+  void realmSpawn(Realm::Processor::TaskFuncPtr func, 
+		  const void* args, 
+		  size_t arglen
+      ){
+    context *ctx = getRealmCTX();
+    Realm::Processor::TaskFuncID taskID = ctx->cur_task++;
+    Realm::Processor p = ctx->procgroup; //spawn on the group to enable Realm's magic load-balancing
+    Realm::CodeDescriptor cd = Realm::CodeDescriptor(func);
+    const Realm::ProfilingRequestSet prs;  //We don't care what it is for now, the default is fine
+    Realm::Event e1 = p.register_task(taskID, cd, prs);
     p.spawn(taskID, args, arglen, e1); //predicated on the completion of the task's registration
     return;
   }

@@ -2481,9 +2481,11 @@ ComprehensiveStaticInstrumentationPass::run(Module &M,
   auto GetTI = [&FAM](Function &F) -> TaskInfo & {
     return FAM.getResult<TaskAnalysis>(F);
   };
-  auto *TLI = &AM.getResult<TargetLibraryAnalysis>(M);
+  auto GetTLI = [&FAM](Function &F) -> TargetLibraryInfo & {
+    return FAM.getResult<TargetLibraryAnalysis>(F);
+  }; 
 
-  if (!CSIImpl(M, &CG, GetDT, GetLI, GetTI, TLI, GetSE, Options).run())
+  if (!CSIImpl(M, &CG, GetDT, GetLI, GetTI, GetTLI, GetSE, Options).run())
     return PreservedAnalyses::all();
 
   return PreservedAnalyses::none();

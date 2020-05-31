@@ -368,7 +368,6 @@ bool TapirToTargetImpl::run() {
 }
 
 PreservedAnalyses TapirToTargetPass::run(Module &M, ModuleAnalysisManager &AM) {
-  auto &TLI = AM.getResult<TargetLibraryAnalysis>(M);
   auto &FAM =
     AM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
   auto GetDT =
@@ -383,14 +382,18 @@ PreservedAnalyses TapirToTargetPass::run(Module &M, ModuleAnalysisManager &AM) {
     [&FAM](Function &F) -> AssumptionCache & {
       return FAM.getResult<AssumptionAnalysis>(F);
     };
+  auto GetTarget = 
+    [&FAM, &M](Function &F) -> TapirTarget * {
+      auto TLI = FAM.getResult<TargetLibraryAnalysis>(F);
+      TapirTargetID TargetID = TLI.getTapirTarget();
+      return getTapirTargetFromID(M, TargetID); 
+    };
 
-  bool Changed = false;
-  TapirTargetID TargetID = TLI.getTapirTarget();
-  Changed |= TapirToTargetImpl(M, GetDT, GetTI, GetAC,
-                               getTapirTargetFromID(M, TargetID)).run();
+  bool Changed = TapirToTargetImpl(M, GetDT, GetTI, GetAC, GetTarget).run(); 
 
   if (Changed)
     return PreservedAnalyses::none();
+
   return PreservedAnalyses::all();
 }
 

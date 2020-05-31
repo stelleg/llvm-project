@@ -1363,11 +1363,15 @@ PreservedAnalyses LoopSpawningPass::run(Module &M, ModuleAnalysisManager &AM) {
     [&FAM](Function &F) -> TargetTransformInfo & {
       return FAM.getResult<TargetIRAnalysis>(F);
     };
-  auto &TLI = AM.getResult<TargetLibraryAnalysis>(M);
-  TapirTargetID TargetID = TLI.getTapirTarget();
   auto GetORE =
     [&FAM](Function &F) -> OptimizationRemarkEmitter & {
       return FAM.getResult<OptimizationRemarkEmitterAnalysis>(F);
+    };
+  auto GetTarget = 
+    [&FAM, &M](Function &F) -> TapirTarget * {
+      auto TLI = FAM.getResult<TargetLibraryAnalysis>(F);
+      TapirTargetID TargetID = TLI.getTapirTarget();
+      return getTapirTargetFromID(M, TargetID); 
     };
 
   SmallVector<Function *, 8> WorkList;
@@ -1391,11 +1395,10 @@ PreservedAnalyses LoopSpawningPass::run(Module &M, ModuleAnalysisManager &AM) {
       Changed |= formLCSSARecursively(*L, DT, &LI, &SE);
   }
 
-  std::unique_ptr<TapirTarget> Target(getTapirTargetFromID(M, TargetID));
   // Now process each loop.
   for (Function *F : WorkList)
     Changed |= LoopSpawningImpl(*F, GetDT(*F), GetLI(*F), GetTI(*F), GetSE(*F),
-                                GetAC(*F), GetTTI(*F), Target.get(),
+                                GetAC(*F), GetTTI(*F), GetTarget(*F),
                                 GetORE(*F)).run();
   if (Changed)
     return PreservedAnalyses::none();

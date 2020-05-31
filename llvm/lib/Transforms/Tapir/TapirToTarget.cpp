@@ -511,6 +511,7 @@ PreservedAnalyses TapirToTargetPass::run(Module &M, ModuleAnalysisManager &AM) {
 
   if (Changed)
     return PreservedAnalyses::none();
+
   return PreservedAnalyses::all();
 }
 

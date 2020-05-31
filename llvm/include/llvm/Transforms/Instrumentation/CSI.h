@@ -966,23 +966,12 @@ public:
           function_ref<DominatorTree &(Function &)> GetDomTree,
           function_ref<LoopInfo &(Function &)> GetLoopInfo,
           function_ref<TaskInfo &(Function &)> GetTaskInfo,
-          const TargetLibraryInfo *TLI,
+          function_ref<TargetLibraryInfo &(Function &)> GetTLI,
           function_ref<ScalarEvolution &(Function &)> GetSE,
           const CSIOptions &Options = CSIOptions())
       : M(M), DL(M.getDataLayout()), CG(CG), GetDomTree(GetDomTree),
-        GetLoopInfo(GetLoopInfo), GetTaskInfo(GetTaskInfo), TLI(TLI),
+        GetLoopInfo(GetLoopInfo), GetTaskInfo(GetTaskInfo), GetTLI(GetTLI), 
         GetScalarEvolution(GetSE), Options(Options) {
-    loadConfiguration();
-  }
-  CSIImpl(Module &M, CallGraph *CG,
-          function_ref<DominatorTree &(Function &)> GetDomTree,
-          function_ref<LoopInfo &(Function &)> GetLoopInfo,
-          function_ref<TaskInfo &(Function &)> GetTaskInfo,
-          const TargetLibraryInfo *TLI,
-          const CSIOptions &Options = CSIOptions())
-      : M(M), DL(M.getDataLayout()), CG(CG), GetDomTree(GetDomTree),
-        GetLoopInfo(GetLoopInfo), GetTaskInfo(GetTaskInfo), TLI(TLI),
-        Options(Options) {
     loadConfiguration();
   }
   CSIImpl(Module &M, CallGraph *CG,
@@ -990,11 +979,10 @@ public:
           function_ref<LoopInfo &(Function &)> GetLoopInfo,
           function_ref<TaskInfo &(Function &)> GetTaskInfo,
           function_ref<TargetLibraryInfo &(Function &)> GetTLI,
-          function_ref<ScalarEvolution &(Function &)> GetSE,
           const CSIOptions &Options = CSIOptions())
       : M(M), DL(M.getDataLayout()), CG(CG), GetDomTree(GetDomTree),
-        GetLoopInfo(GetLoopInfo), GetTaskInfo(GetTaskInfo), GetTLI(GetTLI), 
-        GetScalarEvolution(GetSE), Options(Options) {
+        GetLoopInfo(GetLoopInfo), GetTaskInfo(GetTaskInfo), GetTLI(GetTLI),
+        Options(Options) {
     loadConfiguration();
   }
 
@@ -1389,7 +1377,6 @@ protected:
   function_ref<LoopInfo &(Function &)> GetLoopInfo;
   function_ref<TaskInfo &(Function &)> GetTaskInfo;
   function_ref<TargetLibraryInfo &(Function &)> GetTLI;
-  const TargetLibraryInfo *TLI;
   Optional<function_ref<ScalarEvolution &(Function &)>> GetScalarEvolution;
   CSIOptions Options;
 

@@ -1455,9 +1455,11 @@ void CSIImpl::instrumentAllocFn(Instruction *I, DominatorTree *DT) {
   Value *DefaultID = getDefaultID(IRB);
   uint64_t LocalId = AllocFnFED.add(*I);
   Value *AllocFnId = AllocFnFED.localToGlobalId(LocalId, IRB);
+  auto TLI = GetTLI(*I->getFunction()); 
+
 
   SmallVector<Value *, 4> AllocFnArgs;
-  getAllocFnArgs(I, AllocFnArgs, IntptrTy, IRB.getInt8PtrTy(), *TLI);
+  getAllocFnArgs(I, AllocFnArgs, IntptrTy, IRB.getInt8PtrTy(), TLI);
   SmallVector<Value *, 4> DefaultAllocFnArgs({
       /* Allocated size */ Constant::getNullValue(IntptrTy),
       /* Number of elements */ Constant::getNullValue(IntptrTy),
@@ -1468,7 +1470,7 @@ void CSIImpl::instrumentAllocFn(Instruction *I, DominatorTree *DT) {
   CsiAllocFnProperty Prop;
   Value *DefaultPropVal = Prop.getValue(IRB);
   LibFunc AllocLibF;
-  TLI->getLibFunc(*Called, AllocLibF);
+  TLI.getLibFunc(*Called, AllocLibF);
   Prop.setAllocFnTy(static_cast<unsigned>(getAllocFnTy(AllocLibF)));
   AllocFnArgs.push_back(Prop.getValue(IRB));
   DefaultAllocFnArgs.push_back(DefaultPropVal);
@@ -1528,6 +1530,8 @@ void CSIImpl::instrumentFree(Instruction *I) {
 
   CallInst *FC = cast<CallInst>(I);
   Function *Called = FC->getCalledFunction();
+  Function *Caller = I->getFunction();
+  auto TLI = GetTLI(*Caller); 
   assert(Called && "Could not get called function for free.");
 
   IRBuilder<> IRB(I);
@@ -1537,7 +1541,7 @@ void CSIImpl::instrumentFree(Instruction *I) {
   Value *Addr = FC->getArgOperand(0);
   CsiFreeProperty Prop;
   LibFunc FreeLibF;
-  TLI->getLibFunc(*Called, FreeLibF);
+  TLI.getLibFunc(*Called, FreeLibF);
   Prop.setFreeTy(static_cast<unsigned>(getFreeTy(FreeLibF)));
 
   insertHookCall(I, CsiBeforeFree, {FreeId, Addr, Prop.getValue(IRB)});
@@ -2204,7 +2208,8 @@ void CSIImpl::instrumentFunction(Function &F) {
   if (Options.CallsMayThrow)
     setupCalls(F);
 
-  setupBlocks(F, TLI);
+  auto TLI = GetTLI(F); 
+  setupBlocks(F, &TLI);
 
   DominatorTree *DT = &GetDomTree(F);
   LoopInfo &LI = GetLoopInfo(F);
@@ -2250,9 +2255,9 @@ void CSIImpl::instrumentFunction(Function &F) {
         // Record this function call as either an allocation function, a call to
         // free (or delete), a memory intrinsic, or an ordinary real function
         // call.
-        if (isAllocationFn(&I, TLI))
+        if (isAllocationFn(&I, &TLI))
           AllocationFnCalls.push_back(&I);
-        else if (isFreeCall(&I, TLI))
+        else if (isFreeCall(&I, &TLI))
           FreeCalls.push_back(&I);
         else if (isa<MemIntrinsic>(I))
           MemIntrinsics.push_back(&I);
@@ -2448,8 +2453,11 @@ bool ComprehensiveStaticInstrumentationLegacyPass::runOnModule(Module &M) {
   auto GetTaskInfo = [this](Function &F) -> TaskInfo & {
     return this->getAnalysis<TaskInfoWrapperPass>(F).getTaskInfo();
   };
+  auto GetTLI = [this](Function &F) -> TargetLibraryInfo & {
+    return this->getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
+  };
 
-  bool res = CSIImpl(M, CG, GetDomTree, GetLoopInfo, GetTaskInfo, nullptr, GetSE,
+  bool res = CSIImpl(M, CG, GetDomTree, GetLoopInfo, GetTaskInfo, GetTLI, GetSE,
                      Options).run();
 
   verifyModule(M, &llvm::errs());

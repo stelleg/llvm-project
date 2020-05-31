@@ -175,7 +175,7 @@ struct CilkSanitizerImpl : public CSIImpl {
         SmallVectorImpl<Instruction *> &Instructions);
     bool InstrumentAnyMemIntrinsics(
         SmallVectorImpl<Instruction *> &MemIntrinsics);
-    bool InstrumentCalls(SmallVectorImpl<Instruction *> &Calls);
+    bool InstrumentCalls(SmallVectorImpl<Instruction *> &Calls, TargetLibraryInfo *TLI);
     bool InstrumentAncillaryInstructions(
         SmallPtrSetImpl<Instruction *> &Allocas,
         SmallPtrSetImpl<Instruction *> &AllocationFnCalls,
@@ -210,7 +210,7 @@ struct CilkSanitizerImpl : public CSIImpl {
         SmallVectorImpl<Instruction *> &Instructions);
     bool InstrumentAnyMemIntrinsics(
         SmallVectorImpl<Instruction *> &MemIntrinsics);
-    bool InstrumentCalls(SmallVectorImpl<Instruction *> &Calls);
+    bool InstrumentCalls(SmallVectorImpl<Instruction *> &Calls, TargetLibraryInfo* TLI);
     bool InstrumentAncillaryInstructions(
         SmallPtrSetImpl<Instruction *> &Allocas,
         SmallPtrSetImpl<Instruction *> &AllocationFnCalls,
@@ -265,9 +265,10 @@ struct CilkSanitizerImpl : public CSIImpl {
                     function_ref<LoopInfo &(Function &)> GetLoopInfo,
                     function_ref<DependenceInfo &(Function &)> GetDepInfo,
                     function_ref<RaceInfo &(Function &)> GetRaceInfo,
-                    const TargetLibraryInfo *TLI, bool JitMode = false,
+                    function_ref<TargetLibraryInfo &(Function &)> GetTLI,
+                    bool JitMode = false,
                     bool CallsMayThrow = !AssumeNoExceptions)
-      : CSIImpl(M, CG, GetDomTree, GetLoopInfo, GetTaskInfo, TLI),
+      : CSIImpl(M, CG, GetDomTree, GetLoopInfo, GetTaskInfo, GetTLI),
         GetDepInfo(GetDepInfo), GetRaceInfo(GetRaceInfo) {
     // Even though we're doing our own instrumentation, we want the CSI setup
     // for the instrumentation of function entry/exit, memory accesses (i.e.,
@@ -321,7 +322,7 @@ struct CilkSanitizerImpl : public CSIImpl {
   void chooseInstructionsToInstrument(
       SmallVectorImpl<Instruction *> &Local,
       SmallVectorImpl<Instruction *> &All,
-      const TaskInfo &TI, LoopInfo &LI);
+      const TaskInfo &TI, LoopInfo &LI, TargetLibraryInfo* TLI);
 
   // Helper methods for instrumenting different IR objects.
   bool instrumentLoadOrStore(Instruction *I, IRBuilder<> &IRB);
@@ -1165,6 +1166,7 @@ static void setupBlock(BasicBlock *BB, DominatorTree *DT,
 // one CSI ID space.
 void CilkSanitizerImpl::setupBlocks(Function &F, DominatorTree *DT) {
   SmallPtrSet<BasicBlock *, 8> BlocksToSetup;
+  auto TLI = GetTLI(F); 
   for (BasicBlock &BB : F) {
     if (BB.isLandingPad())
       BlocksToSetup.insert(&BB);
@@ -1176,7 +1178,7 @@ void CilkSanitizerImpl::setupBlocks(Function &F, DominatorTree *DT) {
   }
 
   for (BasicBlock *BB : BlocksToSetup)
-    setupBlock(BB, DT, TLI);
+    setupBlock(BB, DT, &TLI);
 }
 
 // Do not instrument known races/"benign races" that come from compiler
@@ -1389,7 +1391,7 @@ bool CilkSanitizerImpl::unknownObjectUses(const Value *Addr, LoopInfo *LI,
 
 void CilkSanitizerImpl::chooseInstructionsToInstrument(
     SmallVectorImpl<Instruction *> &Local, SmallVectorImpl<Instruction *> &All,
-    const TaskInfo &TI, LoopInfo &LI) {
+    const TaskInfo &TI, LoopInfo &LI, TargetLibraryInfo *TLI) {
   SmallSet<Value*, 8> WriteTargets;
   // Iterate from the end.
   for (Instruction *I : reverse(Local)) {
@@ -1513,12 +1515,12 @@ bool CilkSanitizerImpl::SimpleInstrumentor::InstrumentAnyMemIntrinsics(
 }
 
 bool CilkSanitizerImpl::SimpleInstrumentor::InstrumentCalls(
-    SmallVectorImpl<Instruction *> &Calls) {
+    SmallVectorImpl<Instruction *> &Calls, TargetLibraryInfo *TLI) {
   bool Result = false;
   for (Instruction *I : Calls) {
     // Allocation-function and free calls are handled separately.
-    if (isAllocationFn(I, CilkSanImpl.TLI, false, true) ||
-        isFreeCall(I, CilkSanImpl.TLI))
+    if (isAllocationFn(I, TLI, false, true) ||
+        isFreeCall(I, TLI))
       continue;
 
     bool LocalResult = false;
@@ -1830,12 +1832,12 @@ bool CilkSanitizerImpl::Instrumentor::InstrumentAnyMemIntrinsics(
 }
 
 bool CilkSanitizerImpl::Instrumentor::InstrumentCalls(
-    SmallVectorImpl<Instruction *> &Calls) {
+    SmallVectorImpl<Instruction *> &Calls, TargetLibraryInfo *TLI) {
   bool Result = false;
   for (Instruction *I : Calls) {
     // Allocation-function and free calls are handled separately.
-    if (isAllocationFn(I, CilkSanImpl.TLI, false, true) ||
-        isFreeCall(I, CilkSanImpl.TLI))
+    if (isAllocationFn(I, TLI, false, true) ||
+        isFreeCall(I, TLI))
       continue;
 
     bool LocalResult = false;
@@ -2018,8 +2020,9 @@ Value *CilkSanitizerImpl::Instrumentor::getNoAliasSuppressionValue(
       continue;
     // If we can tell statically that these two memory locations don't alias,
     // move on.
+    Function *F = I->getFunction(); 
     if (!AA->alias(Loc, getMemoryLocation(I, OtherRD.OperandNum,
-                                          CilkSanImpl.TLI)))
+                                          &CilkSanImpl.GetTLI(*F))))
       continue;
 
     // We trust that the suppression value in LocalSuppressions[] for this
@@ -2076,7 +2079,7 @@ Value *CilkSanitizerImpl::Instrumentor::getSuppressionValue(
     SuppressionVal DefaultSV, bool CheckArgs) {
   Function *F = I->getFunction();
   AliasAnalysis *AA = RI.getAA();
-  MemoryLocation Loc = getMemoryLocation(I, OperandNum, CilkSanImpl.TLI);
+  MemoryLocation Loc = getMemoryLocation(I, OperandNum, &CilkSanImpl.GetTLI(*F));
   Value *SV = getSuppressionIRValue(
       IRB, static_cast<unsigned>(SuppressionVal::NoAccess));
   Value *DefaultSuppression = getSuppressionIRValue(
@@ -2214,7 +2217,7 @@ Value *CilkSanitizerImpl::Instrumentor::getSuppressionCheck(
     Instruction *I, IRBuilder<> &IRB, unsigned OperandNum) {
   Function *F = I->getFunction();
   AliasAnalysis *AA = RI.getAA();
-  MemoryLocation Loc = getMemoryLocation(I, OperandNum, CilkSanImpl.TLI);
+  MemoryLocation Loc = getMemoryLocation(I, OperandNum, &CilkSanImpl.GetTLI(*F));
   Value *SuppressionChk = IRB.getTrue();
   // Check the recorded race data for I.
   for (const RaceInfo::RaceData &RD : RI.getRaceData(I)) {
@@ -2407,6 +2410,7 @@ static bool CheckSanitizeCilkAttr(Function &F) {
 }
 
 bool CilkSanitizerImpl::instrumentFunctionUsingRI(Function &F) {
+
   if (F.empty() || shouldNotInstrumentFunction(F) ||
       !CheckSanitizeCilkAttr(F)) {
     LLVM_DEBUG({
@@ -2429,6 +2433,7 @@ bool CilkSanitizerImpl::instrumentFunctionUsingRI(Function &F) {
 
   DominatorTree *DT = &GetDomTree(F);
   LoopInfo &LI = GetLoopInfo(F);
+  TargetLibraryInfo &TLI = GetTLI(F); 
 
   if (Options.InstrumentLoops)
     for (Loop *L : LI)
@@ -2485,10 +2490,10 @@ bool CilkSanitizerImpl::instrumentFunctionUsingRI(Function &F) {
         // Record this function call as either an allocation function, a call to
         // free (or delete), a memory intrinsic, or an ordinary real function
         // call.
-        if (isAllocationFn(&Inst, TLI, /*LookThroughBitCast=*/false,
+        if (isAllocationFn(&Inst, &TLI, /*LookThroughBitCast=*/false,
                            /*IgnoreBuiltinAttr=*/true))
           AllocationFnCalls.insert(&Inst);
-        else if (isFreeCall(&Inst, TLI))
+        else if (isFreeCall(&Inst, &TLI))
           FreeCalls.insert(&Inst);
         else if (isa<AnyMemIntrinsic>(Inst))
           MemIntrinCalls.push_back(&Inst);
@@ -2499,14 +2504,14 @@ bool CilkSanitizerImpl::instrumentFunctionUsingRI(Function &F) {
         // instrumentation.
         if (!simpleCallCannotRace(Inst)) {
           chooseInstructionsToInstrument(LocalLoadsAndStores,
-                                         AllLoadsAndStores, TI, LI);
+                                         AllLoadsAndStores, TI, LI, &TLI);
         }
       } else if (isa<AllocaInst>(Inst)) {
         Allocas.insert(&Inst);
       }
     }
     chooseInstructionsToInstrument(LocalLoadsAndStores, AllLoadsAndStores, TI,
-                                     LI);
+                                     LI, &TLI);
   }
 
   // Map each detach instruction with the sync instructions that could sync it.
@@ -2529,13 +2534,13 @@ bool CilkSanitizerImpl::instrumentFunctionUsingRI(Function &F) {
     Result |= FuncI.InstrumentSimpleInstructions(AllLoadsAndStores);
     Result |= FuncI.InstrumentSimpleInstructions(AtomicAccesses);
     Result |= FuncI.InstrumentAnyMemIntrinsics(MemIntrinCalls);
-    Result |= FuncI.InstrumentCalls(Callsites);
+    Result |= FuncI.InstrumentCalls(Callsites, &TLI);
 
     // Instrument ancillary instructions including allocas, allocation-function
     // calls, free calls, detaches, and syncs.
     Result |= FuncI.InstrumentAncillaryInstructions(Allocas, AllocationFnCalls,
                                                     FreeCalls, SyncRegNums,
-                                                    SRCounters, DL, TLI);
+                                                    SRCounters, DL, &TLI);
   } else {
     Instrumentor FuncI(*this, RI, TI, LI, DT);
     // Insert suppression flags for each function argument.
@@ -2549,13 +2554,13 @@ bool CilkSanitizerImpl::instrumentFunctionUsingRI(Function &F) {
     Result |= FuncI.InstrumentSimpleInstructions(AtomicAccesses);
     Result |= FuncI.InstrumentAnyMemIntrinsics(MemIntrinCalls);
     // -) Set the correct ModRef bit for each pointer argument for the call.
-    Result |= FuncI.InstrumentCalls(Callsites);
+    Result |= FuncI.InstrumentCalls(Callsites, &TLI);
 
     // Instrument ancillary instructions including allocas, allocation-function
     // calls, free calls, detaches, and syncs.
     Result |= FuncI.InstrumentAncillaryInstructions(Allocas, AllocationFnCalls,
                                                     FreeCalls, SyncRegNums,
-                                                    SRCounters, DL, TLI);
+                                                    SRCounters, DL, &TLI);
 
     // Once we have handled ancillary instructions, we've done the necessary
     // analysis on this function.  We now perform delayed instrumentation, which
@@ -2572,9 +2577,14 @@ bool CilkSanitizerImpl::instrumentFunctionUsingRI(Function &F) {
       FuncEntryProp.setNumSyncReg(SRCounters[TI.getRootTask()->getEntry()]);
     // TODO: Determine if we actually want the frame pointer, not the stack
     // pointer.
-    Value *FrameAddr = IRB.CreateCall(
-        Intrinsic::getDeclaration(&M, Intrinsic::frameaddress),
-        {IRB.getInt32(0)});
+    LLVMContext &C = M.getContext();
+    IntegerType *Int32Ty = IntegerType::get(C, 32);
+    auto GetFramePointerFn = Intrinsic::getDeclaration(
+        &M, Intrinsic::frameaddress,
+        IRB.getInt8PtrTy(M.getDataLayout().getAllocaAddrSpace()));
+    Value *FrameAddr =
+      IRB.CreateCall(GetFramePointerFn,
+                   ConstantInt::get(Int32Ty, 0));
     Value *StackSave = IRB.CreateCall(
         Intrinsic::getDeclaration(&M, Intrinsic::stacksave));
     IRB.CreateCall(CsanFuncEntry,
@@ -3350,6 +3360,7 @@ bool CilkSanitizerImpl::instrumentAllocationFn(Instruction *I,
                                                DominatorTree *DT) {
   bool IsInvoke = isa<InvokeInst>(I);
   Function *Called = nullptr;
+  Function *Caller = I->getFunction(); 
   if (CallInst *CI = dyn_cast<CallInst>(I))
     Called = CI->getCalledFunction();
   else if (InvokeInst *II = dyn_cast<InvokeInst>(I))
@@ -3366,7 +3377,7 @@ bool CilkSanitizerImpl::instrumentAllocationFn(Instruction *I,
          "Allocation fn received different ID's in FED and object tables.");
 
   SmallVector<Value *, 4> AllocFnArgs;
-  getAllocFnArgs(I, AllocFnArgs, IntptrTy, IRB.getInt8PtrTy(), *TLI);
+  getAllocFnArgs(I, AllocFnArgs, IntptrTy, IRB.getInt8PtrTy(), GetTLI(*Caller));
   SmallVector<Value *, 4> DefaultAllocFnArgs(
       {/* Allocated size */ Constant::getNullValue(IntptrTy),
        /* Number of elements */ Constant::getNullValue(IntptrTy),
@@ -3376,7 +3387,7 @@ bool CilkSanitizerImpl::instrumentAllocationFn(Instruction *I,
   CsiAllocFnProperty Prop;
   Value *DefaultPropVal = Prop.getValue(IRB);
   LibFunc AllocLibF;
-  TLI->getLibFunc(*Called, AllocLibF);
+  GetTLI(*Caller).getLibFunc(*Called, AllocLibF);
   Prop.setAllocFnTy(static_cast<unsigned>(getAllocFnTy(AllocLibF)));
   AllocFnArgs.push_back(Prop.getValue(IRB));
   DefaultAllocFnArgs.push_back(DefaultPropVal);
@@ -3440,6 +3451,7 @@ bool CilkSanitizerImpl::instrumentFree(Instruction *I) {
 
   CallInst *FC = cast<CallInst>(I);
   Function *Called = FC->getCalledFunction();
+  Function *Caller = I->getFunction(); 
   assert(Called && "Could not get called function for free.");
 
   IRBuilder<> IRB(I);
@@ -3452,7 +3464,7 @@ bool CilkSanitizerImpl::instrumentFree(Instruction *I) {
   Value *Addr = FC->getArgOperand(0);
   CsiFreeProperty Prop;
   LibFunc FreeLibF;
-  TLI->getLibFunc(*Called, FreeLibF);
+  GetTLI(*Caller).getLibFunc(*Called, FreeLibF);
   Prop.setFreeTy(static_cast<unsigned>(getFreeTy(FreeLibF)));
 
   BasicBlock::iterator Iter(I);
@@ -3485,8 +3497,12 @@ bool CilkSanitizerLegacyPass::runOnModule(Module &M) {
     return this->getAnalysis<TapirRaceDetectWrapperPass>(F).getRaceInfo();
   };
 
+  auto GetTLI = [this](Function &F) -> TargetLibraryInfo & {
+    return this->getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
+  };
+
   return CilkSanitizerImpl(M, CG, GetDomTree, GetTaskInfo, GetLoopInfo,
-                           GetDepInfo, GetRaceInfo, nullptr, JitMode,
+                           GetDepInfo, GetRaceInfo, GetTLI, JitMode,
                            CallsMayThrow).run();
 }
 
@@ -3513,9 +3529,11 @@ PreservedAnalyses CilkSanitizerPass::run(Module &M, ModuleAnalysisManager &AM) {
     [&FAM](Function &F) -> RaceInfo & {
       return FAM.getResult<TapirRaceDetect>(F);
     };
-  auto *TLI = &AM.getResult<TargetLibraryAnalysis>(M);
+  auto GetTLI = [&FAM](Function &F) -> TargetLibraryInfo & {
+    return FAM.getResult<TargetLibraryAnalysis>(F);
+  };
 
-  if (!CilkSanitizerImpl(M, &CG, GetDT, GetTI, GetLI, GetDI, GetRI, TLI)
+  if (!CilkSanitizerImpl(M, &CG, GetDT, GetTI, GetLI, GetDI, GetRI, GetTLI)
       .run())
     return PreservedAnalyses::all();
 

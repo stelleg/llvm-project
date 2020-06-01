@@ -208,7 +208,7 @@ CheckForIncompatibleAttributes(Sema &S,
     const LoopHintAttr *NumericAttr;
   } HintAttrs[] = {{nullptr, nullptr}, {nullptr, nullptr}, {nullptr, nullptr},
                    {nullptr, nullptr}, {nullptr, nullptr}, {nullptr, nullptr},
-                   {nullptr, nullptr}};
+                   {nullptr, nullptr}, {nullptr, nullptr}};
 
   for (const auto *I : Attrs) {
     const LoopHintAttr *LH = dyn_cast<LoopHintAttr>(I);

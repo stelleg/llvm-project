@@ -2980,6 +2980,9 @@ BasicBlock *InnerLoopVectorizer::createVectorizedLoopSkeleton() {
   assert(VectorPH && "Invalid loop structure");
   assert(ExitBlock && "Must have an exit block");
 
+  if (isa<SyncInst>(VectorPH->getTerminator()))
+    VectorPH = SplitEdge(VectorPH, OldBasicBlock, DT, LI);
+
   // Some loops have a single integer induction variable, while other loops
   // don't. One example is c++ iterators that often have multiple pointer
   // induction variables. In the code below we also support a case where we
@@ -3030,9 +3033,6 @@ BasicBlock *InnerLoopVectorizer::createVectorizedLoopSkeleton() {
   // before calling any utilities such as SCEV that require valid LoopInfo.
   if (ParentLoop) {
     ParentLoop->addChildLoop(Lp);
-    ParentLoop->addBasicBlockToLoop(LoopScalarPreHeader, *LI);
-    ParentLoop->addBasicBlockToLoop(LoopMiddleBlock, *LI);
-    if (SyncSplit) ParentLoop->addBasicBlockToLoop(SyncSplit, *LI);
   } else {
     LI->addTopLevelLoop(Lp);
   }

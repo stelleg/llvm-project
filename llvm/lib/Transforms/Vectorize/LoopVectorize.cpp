@@ -2949,7 +2949,6 @@ BasicBlock *InnerLoopVectorizer::createVectorizedLoopSkeleton() {
   assert(VectorPH && "Invalid loop structure");
   assert(ExitBlock && "Must have an exit block");
 
-  BasicBlock *SyncSplit = nullptr;
   if (isa<SyncInst>(VectorPH->getTerminator()))
     VectorPH = SplitEdge(VectorPH, OldBasicBlock, DT, LI);
 
@@ -2998,9 +2997,6 @@ BasicBlock *InnerLoopVectorizer::createVectorizedLoopSkeleton() {
   // before calling any utilities such as SCEV that require valid LoopInfo.
   if (ParentLoop) {
     ParentLoop->addChildLoop(Lp);
-    ParentLoop->addBasicBlockToLoop(LoopScalarPreHeader, *LI);
-    ParentLoop->addBasicBlockToLoop(LoopMiddleBlock, *LI);
-    if (SyncSplit) ParentLoop->addBasicBlockToLoop(SyncSplit, *LI);
   } else {
     LI->addTopLevelLoop(Lp);
   }

@@ -2364,7 +2364,8 @@ RValue CodeGenFunction::EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
     llvm::Type *ArgType = Base->getType();
     Function *F = CGM.getIntrinsic(Intrinsic::powi, ArgType);
     MaybeDetach(this, SpawnedScp);
-    return RValue::get(Builder.CreateCall(F, {Base, Exponent}));
+    return RValue::get(emitBinaryMaybeConstrainedFPBuiltin(
+        *this, E, Intrinsic::powi, Intrinsic::experimental_constrained_powi));
   }
 
   case Builtin::BI__builtin_isgreater:

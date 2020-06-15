@@ -3177,6 +3177,9 @@ static void ParseLangArgs(LangOptions &Opts, ArgList &Args, InputKind IK,
   // Check if -fopenmp is specified and set default version to 5.0.
   Opts.OpenMP = Args.hasArg(options::OPT_fopenmp) ? 50 : 0;
 
+  // Check if -fkitsune is specified. 
+  Opts.Kitsune = Args.hasArg(options::OPT_fkitsune) ? 1 : 0;
+  
   // Check if -fkokkos is specified. 
   Opts.Kokkos = Args.hasArg(options::OPT_fkokkos) ? 1 : 0;
 
@@ -3894,6 +3897,8 @@ bool CompilerInvocation::CreateFromArgs(CompilerInvocation &Res,
     else
       Diags.Report(diag::err_drv_invalid_value) << A->getAsString(Args) <<
         Name;
+  } else {
+    LangOpts.Tapir = TapirTargetID::Off;
   }
 
   LangOpts.FunctionAlignment =

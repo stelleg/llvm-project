@@ -362,7 +362,7 @@ void StmtPrinter::VisitCXXForRangeStmt(CXXForRangeStmt *Node) {
 }
 
 void StmtPrinter::VisitCXXForallRangeStmt(CXXForallRangeStmt *Node) {
-  Indent() << "_tapir_forall (";
+  Indent() << "_kitsune_forall (";
   if (Node->getInit())
     PrintInitStmt(Node->getInit(), 5);
   PrintingPolicy SubPolicy(Policy);
@@ -2584,7 +2584,7 @@ void StmtPrinter::VisitCilkForStmt(CilkForStmt *Node) {
 }
 
 void StmtPrinter::VisitForallStmt(ForallStmt *Node) {
-  Indent() << "_tapir_forall (";
+  Indent() << "_kitsune_forall (";
   if (Node->getInit())
     PrintInitStmt(Node->getInit(), 5);
   else

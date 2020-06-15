@@ -4787,3 +4787,61 @@ close the handle. It is also assumed to require an open handle to work with.
   zx_status_t zx_handle_close(zx_handle_t handle [[clang::release_handle]]);
   }];
 }
+
+def TapirDocs : DocumentationCategory<"Tapir Attributes"> {
+  let Content = [{
+Tapir and Kitsune introduce custom C++ attributres that let developer 
+control behaviors at the source code level vs. only through command line 
+arguments.  
+  }];
+}
+
+def TapirRTDocs : Documentation {
+  let Category = TapirDocs;
+  let Content = [{
+
+**Experimental**
+
+The kitsune/tapir runtime target attribute `rt_target` let's developers target a 
+specific runtime at the source level vs. using a command line argument to 
+apply the target to all constructs.  The current target runtime are: 
+
+- cilk     : Cilk runtime system. 
+- cuda     : Nvidia's cuda runtime. 
+- hip      : AMD's (cuda-ish) hip runtime.  
+- libomp   : The OpenMP runtime 
+- qthreads : The Qthreads library 
+- realm    : The Realm runtime (lower level of the Legion Programming System)
+- rocm     : AMD's Rocm runtime. 
+- zero     : Intel's Level Zero runtime. 
+
+Example: 
+
+.. code-block:: c++
+  
+  [[kitsune:rt_target("cilk")]]
+  forall(...) {
+  }];
+}
+
+def TapirStrategyDocs : Documentation {
+  let Category = TapirDocs;
+  let Content = [{
+
+**Experimental**
+
+The tapir/kitsune strategy attribute `strategy` let's developers target a 
+specific execution strategy at the source level vs. using a command line 
+argument to apply the approach source (construct) code wide.  The current 
+strategies are: 
+
+- dac      : execute using a divide-and-conquer approach. 
+- seq      : force sequential executition.  
+- gpu      : use a GPU-centric strategy. 
+
+.. code-block:: c++
+  
+  [[kitsune:strategy("dac")]]
+  forall(...) {
+  }];
+}

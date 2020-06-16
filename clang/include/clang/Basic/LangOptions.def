@@ -391,6 +391,8 @@ LANGOPT(RelativeCXXABIVTables, 1, 0,
         "Use an ABI-incompatible v-table layout that uses relative references")
 
 // kitsune: Kokkos support. 
+BENIGN_LANGOPT(Kitsune, 1, 0, "Enable specialized Kitsune language features and code generation")
+// kitsune: Kokkos support. 
 BENIGN_LANGOPT(Kokkos, 1, 0, "Enable specialized Kokkos code generation")
 // kitsune: FleCSI support. 
 BENIGN_LANGOPT(FleCSI, 1, 0, "Enable specialized FleCSI code generation")

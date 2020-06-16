@@ -1338,6 +1338,9 @@ StmtResult Sema::ActOnWhileStmt(SourceLocation WhileLoc,
   if (Cond.isInvalid())
     return StmtError();
 
+  if (Body->getStmtClass() == Stmt::SpawnStmtClass)
+    Diag(WhileLoc, diag::warn_spawn_as_loop_body) << "while";
+
   auto CondVal = Cond.get();
   CheckBreakContinueBinding(CondVal.second);
 
@@ -1357,6 +1360,9 @@ Sema::ActOnDoStmt(SourceLocation DoLoc, Stmt *Body,
                   SourceLocation WhileLoc, SourceLocation CondLParen,
                   Expr *Cond, SourceLocation CondRParen) {
   assert(Cond && "ActOnDoStmt(): missing expression");
+
+  if (Body->getStmtClass() == Stmt::SpawnStmtClass)
+    Diag(DoLoc, diag::warn_spawn_as_loop_body) << "do";
 
   CheckBreakContinueBinding(Cond);
   ExprResult CondResult = CheckBooleanCondition(DoLoc, Cond);
@@ -1882,6 +1888,9 @@ StmtResult Sema::ActOnForStmt(SourceLocation ForLoc, SourceLocation LParenLoc,
                               Stmt *Body) {
   if (Second.isInvalid())
     return StmtError();
+
+  if (Body->getStmtClass() == Stmt::SpawnStmtClass)
+    Diag(ForLoc, diag::warn_spawn_as_loop_body) << "for";
 
   if (!getLangOpts().CPlusPlus) {
     if (DeclStmt *DS = dyn_cast_or_null<DeclStmt>(First)) {

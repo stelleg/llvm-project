@@ -33,6 +33,51 @@ LoopInfo::createLoopPropertiesMetadata(ArrayRef<Metadata *> LoopProperties) {
   return LoopID;
 }
 
+MDNode *LoopInfo::createTapirLoopMetadata(const LoopAttributes &Attrs,
+                                          ArrayRef<Metadata *> LoopProperties,
+                                          bool &HasUserTransforms) {
+  LLVMContext &Ctx = Header->getContext();
+
+  Optional<bool> Enabled;
+  if (Attrs.SpawnStrategy == LoopAttributes::SEQ)
+    Enabled = false;
+  else
+    Enabled = true;
+
+  if (Enabled != true)
+    return createLoopPropertiesMetadata(LoopProperties);
+
+  SmallVector<Metadata *, 4> Args;
+  TempMDTuple TempNode = MDNode::getTemporary(Ctx, None);
+  Args.push_back(TempNode.get());
+  Args.append(LoopProperties.begin(), LoopProperties.end());
+
+  // Setting tapir.loop.spawn.strategy
+  if (Attrs.SpawnStrategy != LoopAttributes::SEQ) {
+    Metadata *Vals[] = {
+        MDString::get(Ctx, "tapir.loop.spawn.strategy"),
+        ConstantAsMetadata::get(ConstantInt::get(llvm::Type::getInt32Ty(Ctx),
+                                                 Attrs.SpawnStrategy))};
+    Args.push_back(MDNode::get(Ctx, Vals));
+  }
+
+  // Setting tapir.loop.grainsize
+  if (Attrs.TapirGrainsize > 0) {
+    Metadata *Vals[] = {
+        MDString::get(Ctx, "tapir.loop.grainsize"),
+        ConstantAsMetadata::get(ConstantInt::get(llvm::Type::getInt32Ty(Ctx),
+                                                 Attrs.TapirGrainsize))};
+    Args.push_back(MDNode::get(Ctx, Vals));
+  }
+
+  // No follow-up: This is the last transformation.
+
+  MDNode *LoopID = MDNode::getDistinct(Ctx, Args);
+  LoopID->replaceOperandWith(0, LoopID);
+  HasUserTransforms = true;
+  return LoopID;
+}
+
 MDNode *LoopInfo::createPipeliningMetadata(const LoopAttributes &Attrs,
                                            ArrayRef<Metadata *> LoopProperties,
                                            bool &HasUserTransforms) {
@@ -440,7 +485,7 @@ LoopAttributes::LoopAttributes(bool IsParallel)
       TapirGrainsize(0),
       DistributeEnable(LoopAttributes::Unspecified), PipelineDisabled(false),
       PipelineInitiationInterval(0),
-      SpawnStrategy(LoopAttributes::Sequential) {}
+      SpawnStrategy(LoopAttributes::SEQ) {}
 
 void LoopAttributes::clear() {
   IsParallel = false;
@@ -456,7 +501,7 @@ void LoopAttributes::clear() {
   DistributeEnable = LoopAttributes::Unspecified;
   PipelineDisabled = false;
   PipelineInitiationInterval = 0;
-  SpawnStrategy = LoopAttributes::Sequential;
+  SpawnStrategy = LoopAttributes::SEQ;
 }
 
 LoopInfo::LoopInfo(BasicBlock *Header, const LoopAttributes &Attrs,
@@ -481,7 +526,7 @@ LoopInfo::LoopInfo(BasicBlock *Header, const LoopAttributes &Attrs,
       Attrs.UnrollEnable == LoopAttributes::Unspecified &&
       Attrs.UnrollAndJamEnable == LoopAttributes::Unspecified &&
       Attrs.DistributeEnable == LoopAttributes::Unspecified &&
-      Attrs.SpawnStrategy == LoopAttributes::Sequential && !StartLoc && !EndLoc)
+      Attrs.SpawnStrategy == LoopAttributes::SEQ && !StartLoc && !EndLoc)
     return;
 
   TempLoopID = MDNode::getTemporary(Header->getContext(), None);

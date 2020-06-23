@@ -9,7 +9,6 @@
 //  This file implements stmt-related attribute processing.
 //
 //===----------------------------------------------------------------------===//
-
 #include "clang/Sema/SemaInternal.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/SourceManager.h"
@@ -343,64 +342,84 @@ static Attr *handleOpenCLUnrollHint(Sema &S, Stmt *St, const ParsedAttr &A,
   return OpenCLUnrollHintAttr::CreateImplicit(S.Context, UnrollFactor);
 }
 
-// +===== Handle kitsune-centric attributes 
-// 
-static Attr *handleKitsuneTargetAttr(Sema &S, Stmt *St, 
-				     const ParsedAttr &A,
+static Attr *handleTapirRTTargetAttr(Sema &S, Stmt *St, const ParsedAttr &A,
 				     SourceRange Range)
 {
-  if (A.getNumArgs() != 1) {
-    S.Diag(A.getLoc(), diag::err_kitsune_target_attr_wrong_nargs);
+  // We only support a limited range of statement classes.
+  // TODO: Add support for spawn and sync statements. 
+  if (St->getStmtClass() == Stmt::ForallStmtClass || 
+      St->getStmtClass() == Stmt::CXXForallRangeStmtClass) {
+
+    // A quick sanity check to make sure we haven't missed earler 
+    // tests for having kitsune mode enabled (-fkitsune). 
+    if (!S.getLangOpts().Kitsune) {
+      S.Diag(A.getLoc(), diag::warn_kitsune_not_enabled);
+      return nullptr;
+    }
+
+    if (A.getNumArgs() != 1) {
+      S.Diag(A.getLoc(), diag::err_tapir_target_attr_wrong_nargs);
+      return nullptr;
+    }
+
+    StringRef      targetStr;
+    SourceLocation argLoc;
+    if (!S.checkStringLiteralArgumentAttr(A, 0, targetStr, &argLoc)) {
+      S.Diag(A.getLoc(), diag::err_tapir_target_unknown);
+      return nullptr;
+    } 
+
+    TapirRTTargetAttr::TapirRTTargetTy   rtTargetKind;
+    if (!TapirRTTargetAttr::ConvertStrToTapirRTTargetTy(targetStr, rtTargetKind)) {
+       S.Diag(A.getLoc(), diag::err_tapir_target_unknown) << targetStr << argLoc;
+       return nullptr;
+    }
+
+    return ::new(S.Context)TapirRTTargetAttr(S.Context, A, rtTargetKind);
+  } else {
+    // Unsupported statement class encountered... 
+    S.Diag(A.getLoc(), diag::warn_tapir_target_attr_bad_stmt_class);
     return nullptr;
   }
-
-  StringRef      targetStr;
-  SourceLocation argLoc;
-
-  if (!S.checkStringLiteralArgumentAttr(A, 0, targetStr, &argLoc)) {
-    S.Diag(A.getLoc(), diag::err_kitsune_target_unknown);
-    return nullptr;
-  }
-
-  KitsuneTargetAttr::KitsuneTargetTy   targetKind;
-  if(!KitsuneTargetAttr::ConvertStrToKitsuneTargetTy(targetStr, targetKind)) {
-    // FIXME: Is this redundant w/ CheckString call above???
-    S.Diag(A.getLoc(), diag::err_kitsune_target_unknown)
-      << targetStr << argLoc;
-    return nullptr;
-  }
-
-  return ::new(S.Context)
-    KitsuneTargetAttr(S.Context, A, targetKind);
 }
 
-
-static Attr *handleKitsuneStrategyAttr(Sema &S, Stmt *St, 
-				       const ParsedAttr &A,
-				       SourceRange Range) 
+static Attr *handleTapirStrategyAttr(Sema &S, Stmt *St, const ParsedAttr &A,
+				                      SourceRange Range) 
 {
+  bool errState = false;
+
+  // We only support a limited range of statement classes. 
+  // TODO: Add support for spawn and sync statements. 
+  if (St->getStmtClass() != Stmt::ForallStmtClass &&
+      St->getStmtClass() != Stmt::CXXForallRangeStmtClass) {
+    S.Diag(A.getLoc(), diag::warn_tapir_target_attr_bad_stmt_class);    
+    errState = true;
+  }
+  
   if (A.getNumArgs() != 1) {
-    S.Diag(A.getLoc(), diag::err_kitsune_strategy_attr_wrong_nargs);
-    return nullptr;
+    S.Diag(A.getLoc(), diag::err_tapir_strategy_attr_wrong_nargs);
+    errState = true;
   }
 
   StringRef      strategyStr;
   SourceLocation argLoc;
   if (!S.checkStringLiteralArgumentAttr(A, 0, strategyStr, &argLoc)) {
-    S.Diag(A.getLoc(), diag::err_kitsune_strategy_unknown);
-    return nullptr;
+    S.Diag(A.getLoc(), diag::err_tapir_strategy_unknown);
+    errState = true;
   }
 
-  KitsuneStrategyAttr::KitsuneStrategyTy strategyKind;
-  if (!KitsuneStrategyAttr::ConvertStrToKitsuneStrategyTy(strategyStr, strategyKind)) {
-    // FIXME: Is this redundant w/ CheckString call above???
-    S.Diag(A.getLoc(), diag::err_kitsune_strategy_unknown)
+  TapirStrategyAttr::TapirStrategyTy strategyKind;
+  if (!TapirStrategyAttr::ConvertStrToTapirStrategyTy(strategyStr, strategyKind)) {
+    // TODO: Is this redundant w/ CheckString call above???
+    S.Diag(A.getLoc(), diag::err_tapir_strategy_unknown)
       << strategyStr << argLoc;
-    return nullptr;
+    errState = true;
   }
 
-  return ::new (S.Context)
-    KitsuneStrategyAttr(S.Context, A, strategyKind);
+  if (errState) 
+    return nullptr;
+  else  
+    return ::new (S.Context) TapirStrategyAttr(S.Context, A, strategyKind);
 }
 
 // =====+
@@ -423,14 +442,10 @@ static Attr *ProcessStmtAttribute(Sema &S, Stmt *St, const ParsedAttr &A,
     return handleOpenCLUnrollHint(S, St, A, Range);
   case ParsedAttr::AT_Suppress:
     return handleSuppressAttr(S, St, A, Range);
-  // +==== kitsune attr support 
-  case ParsedAttr::AT_KitsuneTarget:
-    return handleKitsuneTargetAttr(S, St, A, Range);
-    break;
-  case ParsedAttr::AT_KitsuneStrategy:
-    return handleKitsuneStrategyAttr(S, St, A, Range);
-    break;
-  // =====+
+  case ParsedAttr::AT_TapirRTTarget:
+    return handleTapirRTTargetAttr(S, St, A, Range);
+  case ParsedAttr::AT_TapirStrategy:
+    return handleTapirStrategyAttr(S, St, A, Range);
   default:
     // if we're here, then we parsed a known attribute, but didn't recognize
     // it as a statement attribute => it is declaration attribute

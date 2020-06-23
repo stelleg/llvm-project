@@ -67,8 +67,9 @@ class Driver {
     CPPMode,
     CLMode,
     FlangMode,
-    KokkosMode, // kitsune: custom Kokkos extensions 
-    FleCSIMode  // kitsune: custom FleCSI extensions 
+    KitsuneMode, 
+    KokkosMode,
+    FleCSIMode
   } Mode;
 
   enum SaveTempsMode {
@@ -191,7 +192,10 @@ public:
   /// Other modes fall back to calling gcc which in turn calls gfortran.
   bool IsFlangMode() const { return Mode == FlangMode; }
 
-  /// kitsune: Whether the driver should follow custom Kokkos behaviors.
+  /// Whether the driver should follow custom Kitsune behaviors.
+  bool isKitsuneMode() const { return Mode == KitsuneMode; }
+
+  /// Whether the driver should follow custom Kokkos behaviors.
   bool IsKokkosMode() const { return Mode == KokkosMode; }
 
   /// kitsune: Whether the driver should follow custom FleCSI behaviors. 

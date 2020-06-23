@@ -79,10 +79,20 @@ struct LoopAttributes {
   unsigned PipelineInitiationInterval;
 
   /// Tapir-loop spawning strategy.
-  enum LSStrategy { Sequential, DAC };
+  enum LSStrategy { SEQ, DAC, GPU };
 
   /// Value for tapir.loop.spawn.strategy metadata.
   LSStrategy SpawnStrategy;
+
+  /// Kitsune/Tapir loop target strategy.
+  enum LTarget { CheetahRT,  CilkRT, CudaRT,
+                 HipRT,      OmpRT,  QthreadsRT, 
+                 RealmRT,    RocmRT, SequentialRT,
+                 ZeroRT 
+               };
+
+  /// Value for tapir.loop.target metadata. 
+  LTarget LoopTarget;
 };
 
 /// Information used when generating a structured loop.

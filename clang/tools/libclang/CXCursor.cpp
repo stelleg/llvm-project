@@ -160,6 +160,10 @@ CXCursor cxcursor::MakeCXCursor(const Stmt *S, const Decl *Parent,
   case Stmt::ForStmtClass:
     K = CXCursor_ForStmt;
     break;
+
+  case Stmt::ForallStmtClass:
+    K = CXCursor_ForallStmt;
+    break;
   
   case Stmt::GotoStmtClass:
     K = CXCursor_GotoStmt;
@@ -228,6 +232,10 @@ CXCursor cxcursor::MakeCXCursor(const Stmt *S, const Decl *Parent,
   case Stmt::CXXForRangeStmtClass:
     K = CXCursor_CXXForRangeStmt;
     break;
+
+  case Stmt::CXXForallRangeStmtClass:
+    K = CXCursor_CXXForallRangeStmt;
+    break;
   
   case Stmt::SEHTryStmtClass:
     K = CXCursor_SEHTryStmt;
@@ -264,6 +272,14 @@ CXCursor cxcursor::MakeCXCursor(const Stmt *S, const Decl *Parent,
 
   case Stmt::CilkForStmtClass:
     K = CXCursor_CilkForStmt;
+    break;
+
+  case Stmt::SpawnStmtClass:
+    K = CXCursor_SpawnStmt;
+    break;
+
+  case Stmt::SyncStmtClass: 
+    K = CXCursor_SyncStmt;
     break;
 
   case Stmt::ArrayTypeTraitExprClass:

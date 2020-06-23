@@ -3523,29 +3523,34 @@ def ReleaseHandle : InheritableParamAttr {
   let Documentation = [ReleaseHandleDocs];
 }
 
-// +===== kitsune-centric attributes 
+// +===== kitsune-/tapir-centric attributes 
 
-def KitsuneTarget : StmtAttr {
-    let Spellings = [CXX11<"kitsune","target">];
-    let Args = [ 
-    	EnumArgument<"KitsuneTargetType", "KitsuneTargetTy", 
-	["qthreads", "realm", "omp", "cuda", "rocm"],
-	["KitsuneTargetQthreads", "KitsuneTargetRealm", "KitsuneTargetOMP", 
-         "KitsuneTargetCuda", "KitsuneTargetROCm"], 0>
-    ];
-    // FIXME -- how do we document this?
-    let Documentation = [Undocumented];
+def TapirRTTarget : StmtAttr {
+  let Spellings = [CXX11<"tapir","rt_target">];
+  let Args = [
+    EnumArgument<"TapirRTTargetType", "TapirRTTargetTy",
+    // TODO: Is there a difference between "serial" and "none"?
+    ["cheetah",    "cilk",   "cuda",
+     "hip",        "libomp", "none",
+     "qthreads",   "realm",  "rocm",
+     "serial",     "zero"],
+    ["CheetahRT",  "CilkRT",  "CudaRT",
+     "HipRT",      "OmpRT",   "QthreadsRT", 
+     "RealmRT",    "RocmRT",  "SequentialRT",
+     "ZeroRT"], 0>
+  ];
+  let Documentation = [TapirRTDocs];
 }
 
-def KitsuneStrategy : StmtAttr {
+def TapirStrategy : StmtAttr {
   let Spellings = [CXX11<"tapir", "strategy">];
   let Args = [
-      EnumArgument<"KitsuneStrategyType", "KitsuneStrategyTy",
-      ["gpu", "seq", "dac"],
-      ["KitsuneGPUStrategy", "KitsuneSequentialStrategy", "KitsuneDivAndConquerStrategy"], 0>
+      EnumArgument<"TapirStrategyType", "TapirStrategyTy",
+      ["dac", "seq", "gpu"],
+      ["DAC", "SEQ", "GPU"], 0>
   ];
   // FIXME -- how do we document this?
-  let Documentation = [Undocumented];
+  let Documentation = [TapirStrategyDocs];
 }
 
 // =====+

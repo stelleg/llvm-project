@@ -251,6 +251,9 @@ public:
   };
 
 public:
+  bool Kitsune = false;
+
+public:
   /// Set of enabled sanitizers.
   SanitizerSet Sanitize;
 

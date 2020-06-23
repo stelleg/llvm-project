@@ -3243,13 +3243,19 @@ public:
   llvm::Value *EmitSEHExceptionInfo();
   llvm::Value *EmitSEHAbnormalTermination();
 
-  // kitsune: Kokkos support  
-  bool EmitKokkosConstruct(const CallExpr *CE);
-  bool EmitKokkosParallelFor(const CallExpr *CE);
-  bool EmitKokkosParallelReduce(const CallExpr *CE);
-  // FIXME?: Should/can we refactor this away?
-  bool InKokkosConstruct = false;
+  LoopAttributes::LSStrategy GetTapirStrategyAttr(ArrayRef<const Attr*> Attrs);
+  LoopAttributes::LTarget GetTapirRTTargetAttr(ArrayRef<const Attr*> Attrs);
 
+  // Kitsune support for Kokkos.  
+  bool EmitKokkosConstruct(const CallExpr *CE, ArrayRef<const Attr *> Attrs = ArrayRef<const Attr *>());
+  const ParmVarDecl *EmitKokkosParallelForInductionVar(const LambdaExpr* Lambda);
+  void EmitKokkosParallelForCond(const Expr *BoundsExpr, const ParmVarDecl *LoopVar,
+                                 llvm::BasicBlock *DetachBlock,
+                                 llvm::BasicBlock *ExitBlock,
+				 JumpDest &Sync);
+  bool EmitKokkosParallelFor(const CallExpr *CE, ArrayRef<const Attr *> Attrs);
+  bool EmitKokkosParallelReduce(const CallExpr *CE, ArrayRef<const Attr *> Attrs);
+  bool InKokkosConstruct = false; // FIXME: Should/can we refactor this away?
 
   /// Emit simple code for OpenMP directives in Simd-only mode.
   void EmitSimpleOMPExecutableDirective(const OMPExecutableDirective &D);

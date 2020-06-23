@@ -7,7 +7,7 @@ if (LLVM_ENABLE_PLUGINS)
   add_definitions(-DLLVM_ENABLE_PLUGINS)
 endif()
 
-set(LLVM_LINK_COMPONENTS Support Passes Core)
+set(LLVM_LINK_COMPONENTS TransformUtils Support Passes Core)
 add_llvm_unittest(PluginsTests
   PluginsTest.cpp
   )

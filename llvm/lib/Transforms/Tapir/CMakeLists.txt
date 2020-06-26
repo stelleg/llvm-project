@@ -9,6 +9,7 @@ add_llvm_component_library(LLVMTapirOpts
   LoopStripMinePass.cpp
   LoweringUtils.cpp
   OpenMPABI.cpp
+  OpenCLABI.cpp
   Outline.cpp
   QthreadsABI.cpp
   SerialABI.cpp
@@ -23,4 +24,7 @@ add_llvm_component_library(LLVMTapirOpts
 
   DEPENDS
   intrinsics_gen
+
+  LINK_LIBS LLVMSPIRVLib
   )
+

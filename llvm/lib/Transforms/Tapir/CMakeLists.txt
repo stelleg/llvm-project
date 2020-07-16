@@ -8,6 +8,7 @@ add_llvm_component_library(LLVMTapirOpts
   LoopStripMine.cpp
   LoopStripMinePass.cpp
   LoweringUtils.cpp
+  LoopOpenCL.cpp
   OpenMPABI.cpp
   OpenCLABI.cpp
   Outline.cpp

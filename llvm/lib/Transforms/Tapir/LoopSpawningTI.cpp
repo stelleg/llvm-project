@@ -709,7 +709,10 @@ LoopOutlineProcessor *LoopSpawningImpl::getOutlineProcessor(TapirLoopInfo *TL) {
 
   switch (Hints.getStrategy()) {
   case TapirLoopHints::ST_DAC: return new DACSpawning(M);
-  case TapirLoopHints::ST_OCL: return new OCLSpawning(M);
+  case TapirLoopHints::ST_OCL: {
+    LLVM_DEBUG(dbgs() << "Running OPENCL Loop codegen"); 
+    return new OCLSpawning(M);
+  }
   default: return new DefaultLoopOutlineProcessor(M);
   }
 }

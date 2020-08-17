@@ -17,3 +17,4 @@ if (KITSUNE_ENABLE_CUDA_RUNTIME)
    add_subdirectory(lib/CudaRT)
 endif()
 
+add_subdirectory(lib/OpenCL)

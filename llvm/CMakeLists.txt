@@ -58,6 +58,7 @@ if ((CMAKE_GENERATOR MATCHES "Visual Studio") AND (CMAKE_GENERATOR_TOOLSET STREQ
                   "host compiler, pass -Thost=x64 on the CMake command line.")
 endif()
 
+set (LLVM_EXTERNAL_PROJECTS "kitsune")
 if (CMAKE_GENERATOR STREQUAL "Xcode" AND NOT CMAKE_OSX_ARCHITECTURES)
   # Some CMake features like object libraries get confused if you don't
   # explicitly specify an architecture setting with the Xcode generator.
@@ -1219,8 +1220,6 @@ if (LLVM_INCLUDE_BENCHMARKS)
   add_subdirectory(utils/benchmark)
   add_subdirectory(benchmarks)
 endif()
-
-add_llvm_external_project(kitsune)
 
 if (LLVM_INCLUDE_UTILS AND LLVM_INCLUDE_TOOLS)
   add_subdirectory(utils/llvm-locstats)

@@ -3892,6 +3892,8 @@ bool CompilerInvocation::CreateFromArgs(CompilerInvocation &Res,
       LangOpts.Tapir = TapirTargetID::Qthreads;
     else if (Name == "cuda")
       LangOpts.Tapir = TapirTargetID::Cuda;
+    else if (Name == "opencl")
+      LangOpts.Tapir = TapirTargetID::OpenCL;
     else if (Name == "serial")
       LangOpts.Tapir = TapirTargetID::Serial;
     else

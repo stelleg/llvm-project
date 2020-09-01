@@ -24,6 +24,7 @@ enum class TapirTargetID {
   CilkR,    // Lower to the CilkR ABI
   Cuda,     // Lower to Cuda ABI
   OpenCilk, // Lower to OpenCilk ABI
+  OpenCL,   // Lower to OpenCL ABI
   OpenMP,   // Lower to OpenMP
   Qthreads, // Lower to Qthreads
   Last_TapirTargetID

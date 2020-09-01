@@ -21,6 +21,7 @@
 #include "llvm/Transforms/Tapir/CilkRABI.h"
 #include "llvm/Transforms/Tapir/CudaABI.h"
 #include "llvm/Transforms/Tapir/OpenMPABI.h"
+#include "llvm/Transforms/Tapir/OpenCLABI.h"
 #include "llvm/Transforms/Tapir/Outline.h"
 #include "llvm/Transforms/Tapir/QthreadsABI.h"
 #include "llvm/Transforms/Tapir/SerialABI.h"
@@ -49,6 +50,8 @@ TapirTarget *llvm::getTapirTargetFromID(Module &M, TapirTargetID ID) {
     return new CilkRABI(M);
   case TapirTargetID::Cuda:
     return new CudaABI(M);
+  case TapirTargetID::OpenCL:
+    return new OpenCLABI(M);
   case TapirTargetID::OpenMP:
     return new OpenMPABI(M);
   case TapirTargetID::Qthreads:

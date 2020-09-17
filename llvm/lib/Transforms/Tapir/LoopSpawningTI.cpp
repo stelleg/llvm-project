@@ -347,7 +347,7 @@ private:
   // the arguments to that helper function.  The map \p VMap will store the
   // mapping of values in the original function to values in the outlined
   // helper.
-  Function *createHelperForTapirLoop(TapirLoopInfo *TL, ValueSet &Args,
+  Function *createHelperForTapirLoop(TapirLoopInfo *TL, ValueSet &Args, ValueSet &Inputs,
                                      unsigned IVArgIndex,
                                      unsigned LimitArgIndex, Module *DestM,
                                      ValueToValueMapTy &VMap,
@@ -993,7 +993,7 @@ static void updateClonedIVs(
 /// the arguments to that helper function.  The map \p VMap will store the
 /// mapping of values in the original function to values in the outlined helper.
 Function *LoopSpawningImpl::createHelperForTapirLoop(
-    TapirLoopInfo *TL, ValueSet &Args, unsigned IVArgIndex,
+    TapirLoopInfo *TL, ValueSet &Args, ValueSet &Inputs, unsigned IVArgIndex,
     unsigned LimitArgIndex, Module *DestM, ValueToValueMapTy &VMap,
     ValueToValueMapTy &InputMap) {
   Task *T = TL->getTask();
@@ -1021,8 +1021,8 @@ Function *LoopSpawningImpl::createHelperForTapirLoop(
 
   // If the trip count is variable and we're not otherwise passing the trip
   // count as an argument, temporarily map the trip count to the end argument.
-  if (!isa<Constant>(TL->getTripCount()) && !Args.count(TL->getTripCount()))
-    VMap[TL->getTripCount()] = Args[LimitArgIndex];
+  if (!isa<Constant>(TL->getTripCount()) && !Inputs.count(TL->getTripCount()))
+    VMap[TL->getTripCount()] = Inputs[LimitArgIndex];
 
   Twine NameSuffix = ".ls" + Twine(TL->getLoop()->getLoopDepth());
   SmallVector<ReturnInst *, 4> Returns;  // Ignore returns cloned.
@@ -1034,7 +1034,7 @@ Function *LoopSpawningImpl::createHelperForTapirLoop(
                        TimerGroupName, TimerGroupDescription,
                        TimePassesIsEnabled);
   Helper =
-    CreateHelper(Args, Outputs, TLBlocks, Header,
+    CreateHelper(Args, Inputs, Outputs, TLBlocks, Header,
                  Preheader, TL->getExitBlock(), VMap, DestM,
                  F.getSubprogram() != nullptr, Returns,
                  NameSuffix.str(), nullptr, &DetachedRethrowBlocks,
@@ -1048,6 +1048,7 @@ Function *LoopSpawningImpl::createHelperForTapirLoop(
   if (nullptr == TL->getUnwindDest())
     Helper->setDoesNotThrow();
 
+  /*
   // Update cloned loop condition to use the end-iteration argument.
   unsigned TripCountIdx = 0;
   Value *TripCount = TL->getTripCount();
@@ -1059,15 +1060,16 @@ Function *LoopSpawningImpl::createHelperForTapirLoop(
          "Trip count not used in condition");
   ICmpInst *ClonedCond = cast<ICmpInst>(VMap[TL->getCondition()]);
   ClonedCond->setOperand(TripCountIdx, VMap[Args[LimitArgIndex]]);
+  */
 
   // If the trip count is variable and we're not passing the trip count as an
   // argument, undo the eariler temporarily mapping.
-  if (!isa<Constant>(TL->getTripCount()) && !Args.count(TL->getTripCount()))
+  if (!isa<Constant>(TL->getTripCount()) && !Inputs.count(TL->getTripCount()))
     // If we need to remap the trip count, map it to the end-iteration argument.
     VMap.erase(TL->getTripCount());
 
   // Rewrite cloned IV's to start at their start-iteration arguments.
-  updateClonedIVs(TL, Preheader, Args, VMap, IVArgIndex);
+  updateClonedIVs(TL, Preheader, Inputs, VMap, IVArgIndex);
 
   // Add alignment assumptions to arguments of helper, based on alignment of
   // values in old function.
@@ -1076,7 +1078,7 @@ Function *LoopSpawningImpl::createHelperForTapirLoop(
                        "Add alignment assumptions to Tapir-loop helper",
                        TimerGroupName, TimerGroupDescription,
                        TimePassesIsEnabled);
-  AddAlignmentAssumptions(&F, Args, VMap, Preheader->getTerminator(), &AC, &DT);
+  AddAlignmentAssumptions(&F, Inputs, VMap, Preheader->getTerminator(), &AC, &DT);
   } // end timed region
 
   // CreateHelper partially serializes the cloned copy of the loop by converting
@@ -1250,10 +1252,11 @@ TaskOutlineMapTy LoopSpawningImpl::outlineAllTapirLoops() {
       LoopInputs[L].push_back(V);
     LoopArgStarts[L] = ArgStart;
 
+    auto tmpLoopInputSet = ValueSet(LoopInputs[L].begin(), LoopInputs[L].end()); 
     ValueToValueMapTy VMap;
     // Create the helper function.
     Function *Outline = createHelperForTapirLoop(
-        TL, LoopArgs[L], OutlineProcessors[TL]->getIVArgIndex(F, LoopArgs[L]),
+        TL, LoopArgs[L], tmpLoopInputSet, OutlineProcessors[TL]->getIVArgIndex(F, LoopArgs[L]),
         OutlineProcessors[TL]->getLimitArgIndex(F, LoopArgs[L]),
         &OutlineProcessors[TL]->getDestinationModule(), VMap, InputMap);
     TaskToOutline[T] = TaskOutlineInfo(Outline, LoopInputSets[L],

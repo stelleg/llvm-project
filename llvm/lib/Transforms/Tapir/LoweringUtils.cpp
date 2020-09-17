@@ -427,7 +427,7 @@ Function *llvm::createHelperForTask(
                        TimerGroupName, TimerGroupDescription,
                        TimePassesIsEnabled);
   Helper =
-    CreateHelper(Args, Outputs, TaskBlocks, T->getEntry(),
+    CreateHelper(Args, Args, Outputs, TaskBlocks, T->getEntry(),
                  DI->getParent(), DI->getContinue(), VMap, DestM,
                  F.getSubprogram() != nullptr, Returns,
                  NameSuffix.str(), &ReattachBlocks,
@@ -656,41 +656,46 @@ Instruction *llvm::replaceLoopWithCallToOutline(
 
   Loop *L = TL->getLoop();
   // Add call to new helper function in original function.
-  if (!Out.ReplUnwind) {
-    // Common case.  Insert a call to the outline immediately before the detach.
-    CallInst *TopCall;
-    // Create call instruction.
-    IRBuilder<> Builder(Out.ReplCall);
-    TopCall = Builder.CreateCall(Out.Outline, OutlineInputs);
-    // Use a fast calling convention for the outline.
-    TopCall->setCallingConv(Out.Outline->getCallingConv());
-    TopCall->setDebugLoc(TL->getDebugLoc());
-    TopCall->setDoesNotThrow();
-    // Replace the loop with an unconditional branch to its exit.
-    L->getHeader()->removePredecessor(Out.ReplCall->getParent());
-    ReplaceInstWithInst(Out.ReplCall, BranchInst::Create(Out.ReplRet));
-    return TopCall;
-  } else {
-    // The detach might catch an exception from the task.  Replace the detach
-    // with an invoke of the outline.
-    InvokeInst *TopCall;
+  if(Out.Outline->getParent() == Out.ReplCall->getModule()){
+    if (!Out.ReplUnwind) {
+      // Common case.  Insert a call to the outline immediately before the detach.
+      CallInst *TopCall;
+      // Create call instruction.
+      IRBuilder<> Builder(Out.ReplCall);
+      TopCall = Builder.CreateCall(Out.Outline, OutlineInputs);
+      // Use a fast calling convention for the outline.
+      TopCall->setCallingConv(Out.Outline->getCallingConv());
+      TopCall->setDebugLoc(TL->getDebugLoc());
+      TopCall->setDoesNotThrow();
+      // Replace the loop with an unconditional branch to its exit.
+      L->getHeader()->removePredecessor(Out.ReplCall->getParent());
+      ReplaceInstWithInst(Out.ReplCall, BranchInst::Create(Out.ReplRet));
+      return TopCall;
+    } else {
+      // The detach might catch an exception from the task.  Replace the detach
+      // with an invoke of the outline.
+      InvokeInst *TopCall;
 
-    // Create invoke instruction.  The ordinary return of the invoke is the
-    // detach's continuation, and the unwind return is the detach's unwind.
-    TopCall = InvokeInst::Create(Out.Outline, Out.ReplRet, Out.ReplUnwind,
-                                 OutlineInputs);
-    // Use a fast calling convention for the outline.
-    TopCall->setCallingConv(Out.Outline->getCallingConv());
-    TopCall->setDebugLoc(TL->getDebugLoc());
-    // Replace the loop with the invoke.
-    L->getHeader()->removePredecessor(Out.ReplCall->getParent());
-    ReplaceInstWithInst(Out.ReplCall, TopCall);
-    // Add invoke parent as a predecessor for all Phi nodes in ReplUnwind.
-    for (PHINode &Phi : Out.ReplUnwind->phis())
-      Phi.addIncoming(Phi.getIncomingValueForBlock(L->getHeader()),
-                      TopCall->getParent());
-    return TopCall;
+      // Create invoke instruction.  The ordinary return of the invoke is the
+      // detach's continuation, and the unwind return is the detach's unwind.
+      TopCall = InvokeInst::Create(Out.Outline, Out.ReplRet, Out.ReplUnwind,
+                                   OutlineInputs);
+      // Use a fast calling convention for the outline.
+      TopCall->setCallingConv(Out.Outline->getCallingConv());
+      TopCall->setDebugLoc(TL->getDebugLoc());
+      // Replace the loop with the invoke.
+      L->getHeader()->removePredecessor(Out.ReplCall->getParent());
+      ReplaceInstWithInst(Out.ReplCall, TopCall);
+      // Add invoke parent as a predecessor for all Phi nodes in ReplUnwind.
+      for (PHINode &Phi : Out.ReplUnwind->phis())
+        Phi.addIncoming(Phi.getIncomingValueForBlock(L->getHeader()),
+                        TopCall->getParent());
+      return TopCall;
+    }
   }
+  auto *br = BranchInst::Create(Out.ReplRet); 
+  ReplaceInstWithInst(Out.ReplCall, br); 
+  return br; 
 }
 
 bool TapirTarget::shouldProcessFunction(const Function &F) const {

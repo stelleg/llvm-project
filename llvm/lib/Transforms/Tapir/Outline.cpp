@@ -250,7 +250,7 @@ void llvm::CloneIntoFunction(Function *NewFunc, const Function *OldFunc,
 ///
 /// TODO: Fix the std::vector part of the type of this function.
 Function *llvm::CreateHelper(
-    const ValueSet &Inputs, const ValueSet &Outputs,
+    const ValueSet &Args, const ValueSet &Inputs, const ValueSet &Outputs,
     std::vector<BasicBlock *> Blocks, BasicBlock *Header,
     const BasicBlock *OldEntry, const BasicBlock *OldExit,
     ValueToValueMapTy &VMap, Module *DestM, bool ModuleLevelChanges,
@@ -262,6 +262,7 @@ Function *llvm::CreateHelper(
     SmallPtrSetImpl<BasicBlock *> *UnreachableExits,
     Type *ReturnType, ClonedCodeInfo *CodeInfo,
     ValueMapTypeRemapper *TypeMapper, OutlineMaterializer *Materializer) {
+  LLVM_DEBUG(dbgs() << "args: " << Args.size() << "\n");
   LLVM_DEBUG(dbgs() << "inputs: " << Inputs.size() << "\n");
   LLVM_DEBUG(dbgs() << "outputs: " << Outputs.size() << "\n");
 
@@ -274,9 +275,13 @@ Function *llvm::CreateHelper(
     VoidRet = true;
 
   std::vector<Type *> paramTy;
-
   // Add the types of the input values to the function's argument list
   for (Value *value : Inputs) {
+    LLVM_DEBUG(dbgs() << "inputs passed to func: " << *value << "\n");
+  }
+
+  // Add the types of the input values to the function's argument list
+  for (Value *value : Args) {
     LLVM_DEBUG(dbgs() << "value used in func: " << *value << "\n");
     paramTy.push_back(value->getType());
   }
@@ -308,7 +313,7 @@ Function *llvm::CreateHelper(
   Function::arg_iterator DestI = NewFunc->arg_begin();
   for (Value *I : Inputs) {
     if (VMap.count(I) == 0) {       // Is this argument preserved?
-      DestI->setName(I->getName()+NameSuffix); // Copy the name over...
+      //DestI->setName(I->getName()+NameSuffix); // Copy the name over...
       VMap[I] = &*DestI++;          // Add mapping to VMap
     }
     // Check for any vector arguments, and record the maximum width of any
@@ -328,7 +333,7 @@ Function *llvm::CreateHelper(
   }
   for (Value *I : Outputs)
     if (VMap.count(I) == 0) {              // Is this argument preserved?
-      DestI->setName(I->getName()+NameSuffix); // Copy the name over...
+      //DestI->setName(I->getName()+NameSuffix); // Copy the name over...
       VMap[I] = &*DestI++;                 // Add mapping to VMap
     }
 

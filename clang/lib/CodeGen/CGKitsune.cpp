@@ -226,7 +226,6 @@ void CodeGenFunction::EmitSpawnStmt(const SpawnStmt &S) {
 void CodeGenFunction::EmitForallStmt(const ForallStmt &S,
                                              ArrayRef<const Attr *> ForAttrs) {
 
-                                        
   assert(S.getInit() && "forall loop has no init");
   assert(S.getCond() && "forall loop has no condition");
   assert(S.getInc() && "forall loop has no increment");
@@ -297,60 +296,65 @@ void CodeGenFunction::EmitForallStmt(const ForallStmt &S,
   // Handle the Detach block
   //////////////////////////////
 
+
   // Emit the (currently empty) detach block
   EmitBlock(Detach);
 
   // Extract the DeclStmt from the statement init
   const DeclStmt *DS = cast<DeclStmt>(S.getInit());
-  
-  // create the value map between the induction variables and their corresponding detach mirrors
-  llvm::ValueMap<llvm::Value*, llvm::AllocaInst *> InductionDetachMap;
-
-  // Emit the detach block
-  EmitDetachBlock(DS, InductionDetachMap);
+ 
+  // Set up IVs to be copied as firstprivate 
+  auto OldAllocaInsertPt = AllocaInsertPt;
+  llvm::Value *Undef = llvm::UndefValue::get(Int32Ty);
+  AllocaInsertPt = new llvm::BitCastInst(Undef, Int32Ty, "",
+                                             Detach);
+  DeclMapTy IVDeclMap; 
+  for (auto *DI : DS->decls()){
+    auto *LoopVar = dyn_cast<VarDecl>(DI);
+    Address OuterLoc = LocalDeclMap.find(LoopVar)->second; 
+    IVDeclMap.insert({LoopVar, OuterLoc}); 
+    LocalDeclMap.erase(LoopVar);
+    AutoVarEmission LVEmission = EmitAutoVarAlloca(*LoopVar);
+    QualType type = LoopVar->getType();
+    Address Loc = LVEmission.getObjectAddress(*this);
+    LValue LV = MakeAddrLValue(Loc, type);
+    LValue OuterLV = MakeAddrLValue(OuterLoc, type); 
+    RValue OuterRV = EmitLoadOfLValue(OuterLV, DI->getBeginLoc()); 
+    LV.setNonGC(true);
+    EmitStoreThroughLValue(OuterRV, LV, true);
+    EmitAutoVarCleanups(LVEmission);
+  }
 
   // create the detach terminator
   Builder.CreateDetach(ForBody, Increment, SRStart);  
 
-  //////////////////////////////
-  // End the Detach block
-  //////////////////////////////
-
   EmitBlock(ForBody);
-
   incrementProfileCounter(&S);
-
   {
     // Create a separate cleanup scope for the body, in case it is not
-    // a compound statement.
+   // a compound statement.
     RunCleanupsScope BodyScope(*this);
     EmitStmt(S.getBody());
   }
 
+  auto tmp = AllocaInsertPt; 
+  AllocaInsertPt = OldAllocaInsertPt; 
+  tmp->removeFromParent(); 
 
-  /////////////////////////////////////////////////////////////////
-  // Modify the body block to use the detach block variable mirror.
-  // At this point in the codegen, the body block has been emitted
-  // and we can safely replace the induction variable with the detach
-  // block mirror in the entire function, since the increment block
-  // (a valid use of the induction variable) has not been emitted yet.
-  /////////////////////////////////////////////////////////////////
-
-  ReplaceAllUsesInCurrentBlock(InductionDetachMap);
+  // Restore IVs after emitting body
+  for (const auto &p : IVDeclMap){
+    LocalDeclMap.erase(p.first);
+    LocalDeclMap.insert(p); 
+  }
 
   EmitBlock(Reattach.getBlock());
   Builder.CreateReattach(Increment, SRStart);
 
   EmitBlock(Increment);
-
   EmitStmt(S.getInc());
-
   BreakContinueStack.pop_back();
-
   ConditionScope.ForceCleanup();
-
   EmitStopPoint(&S);
-
   EmitBranch(ConditionBlock);
 
   ForScope.ForceCleanup();
@@ -361,6 +365,7 @@ void CodeGenFunction::EmitForallStmt(const ForallStmt &S,
   Builder.CreateSync(End, SRStart);
 
   EmitBlock(End, true);
+
 }
 
 void CodeGenFunction::EmitCXXForallRangeStmt(const CXXForallRangeStmt &S,
@@ -428,13 +433,28 @@ void CodeGenFunction::EmitCXXForallRangeStmt(const CXXForallRangeStmt &S,
 
   // Extract the DeclStmt from the statement init
   const DeclStmt *DS = cast<DeclStmt>(S.getBeginStmt());
-
-  // create the value map between the induction variables and their corresponding detach mirrors
-  llvm::ValueMap<llvm::Value*, llvm::AllocaInst *> InductionDetachMap;
-
-  // Emit the detach block
-  EmitDetachBlock(DS, InductionDetachMap);
-
+  
+  // Set up IVs to be copied as firstprivate 
+  auto OldAllocaInsertPt = AllocaInsertPt;
+  llvm::Value *Undef = llvm::UndefValue::get(Int32Ty);
+  AllocaInsertPt = new llvm::BitCastInst(Undef, Int32Ty, "",
+                                             Detach);
+  DeclMapTy IVDeclMap; 
+  for (auto *DI : DS->decls()){
+    auto *LoopVar = dyn_cast<VarDecl>(DI);
+    Address OuterLoc = LocalDeclMap.find(LoopVar)->second; 
+    IVDeclMap.insert({LoopVar, OuterLoc}); 
+    LocalDeclMap.erase(LoopVar);
+    AutoVarEmission LVEmission = EmitAutoVarAlloca(*LoopVar);
+    QualType type = LoopVar->getType();
+    Address Loc = LVEmission.getObjectAddress(*this);
+    LValue LV = MakeAddrLValue(Loc, type);
+    LValue OuterLV = MakeAddrLValue(OuterLoc, type); 
+    RValue OuterRV = EmitLoadOfLValue(OuterLV, DI->getBeginLoc()); 
+    LV.setNonGC(true);
+    EmitStoreThroughLValue(OuterRV, LV, true);
+    EmitAutoVarCleanups(LVEmission);
+  }
 
   // create the detach terminator
   Builder.CreateDetach(ForBody, Increment, SRStart);
@@ -454,6 +474,17 @@ void CodeGenFunction::EmitCXXForallRangeStmt(const CXXForallRangeStmt &S,
     EmitStmt(S.getBody());
   }
 
+  auto tmp = AllocaInsertPt; 
+  AllocaInsertPt = OldAllocaInsertPt; 
+  tmp->removeFromParent(); 
+
+
+  // Restore IVs after emitting body
+  for (const auto &p : IVDeclMap){
+    LocalDeclMap.erase(p.first);
+    LocalDeclMap.insert(p); 
+  }
+
   /////////////////////////////////////////////////////////////////
   // Modify the body block to use the detach block variable mirror.
   // At this point in the codegen, the body block has been emitted
@@ -461,8 +492,6 @@ void CodeGenFunction::EmitCXXForallRangeStmt(const CXXForallRangeStmt &S,
   // block mirror in the entire function, since the increment block
   // (a valid use of the induction variable) has not been emitted yet.
   /////////////////////////////////////////////////////////////////
-
-  ReplaceAllUsesInCurrentBlock(InductionDetachMap);
 
   EmitBlock(Reattach.getBlock());
   Builder.CreateReattach(Increment, SRStart);
@@ -487,80 +516,3 @@ void CodeGenFunction::EmitCXXForallRangeStmt(const CXXForallRangeStmt &S,
   EmitBlock(End, true);
 }
 
-void CodeGenFunction::ReplaceAllUsesInCurrentBlock(llvm::ValueMap<llvm::Value*, llvm::AllocaInst *> &InductionDetachMap){
-
-  // get the current basic block
-  llvm::BasicBlock *CurrentBlock = Builder.GetInsertBlock();
-
-  for (auto &&kv: InductionDetachMap){
-  /*
-    // At the moment, I believe the following block of code should be equivalent
-    // to the one following, but there is an llvm bug? that makes them inequivalent 
-    for (auto &U : InductionVar->uses()) {
-      auto I = cast<llvm::Instruction>(U.getUser());
-      if (I->getParent() == ForBody) U.set(DetachVar);
-    }
-  */
-  
-    // this code is pulled essentially verbatim from ReplaceNonLocalUsesWith
-    // FYI: A Use is an operand to an instruction, A User is an instruction. 
-    llvm::Instruction *IV = dyn_cast<llvm::Instruction>(kv.first);
-
-    // this code is pulled essentially verbatim from ReplaceNonLocalUsesWith
-    for (llvm::Value::use_iterator UI = IV->use_begin(), UE = IV->use_end();
-        UI != UE;) {
-      llvm::Use &U = *UI++;
-      llvm::Instruction *I = cast<llvm::Instruction>(U.getUser());
-      if (I->getParent() == CurrentBlock) U.set(kv.second);
-    }
-
-  }
-}
-
-void CodeGenFunction::EmitDetachBlock(const DeclStmt *DS, llvm::ValueMap<llvm::Value*, llvm::AllocaInst *> &InductionDetachMap){
-
-  // iterate over all VarDecl's in the DeclStmt
-  for (auto *DI : DS->decls()){
-
-    // convert the Decl iterator into a VarDecl
-    const VarDecl *InductionVarDecl=dyn_cast<VarDecl>(DI);
-
-    // Get the induction variable (e.g. %i)
-    llvm::Value *InductionVar = GetAddrOfLocalVar(InductionVarDecl).getPointer();
-
-    // Use the Clang::CodeGen::CGBuilderTy::CreateLoad to load the induction variable.
-    // This is the current value of the induction variable (e.g. %1 below)
-    // e.g. %1 = load i32, i32* %i, align 4
-    // In principle, the following line could be put in the #ifndef block and
-    // the load instruction in TB's variant could be derived directly from the
-    // condition block. But by keeping the load here I have a known handle without
-    // doing any searching. It will likely get optimized away anyway.
-    llvm::Value *InductionVal = Builder.CreateLoad(GetAddrOfLocalVar(InductionVarDecl));
-
-    #ifndef __TB__
-    // Codegen a local copy in the detach block of the induction variable and 
-    // store the induction variable value
-
-    // Get the Clang QualType for the Induction Variable
-    QualType RefType = InductionVarDecl->getType();
-
-    // Use the LLVM Builder to create the detach variable alloca
-    // e.g. %i.detach = alloca i32
-    // At the moment, I don't know how to force an alignment into the alloca
-    llvm::AllocaInst *DetachVar = Builder.CreateAlloca(
-        getTypes().ConvertType(RefType), nullptr, InductionVar->getName() + ".detach");
-
-    // Use the Clang::CodeGen::CGBuilderTy to store the induction variable
-    // into the detach variable mirror (e.g. store i32 %1, i32* %i.detach, align 4)
-    Builder.CreateAlignedStore(InductionVal, DetachVar,
-                              getContext().getTypeAlignInChars(RefType));
-
-    // Add the mapping from induction variable to detach variable
-    InductionDetachMap[InductionVar]=DetachVar;         
-
-    #endif
-  }
-
-
-
-}

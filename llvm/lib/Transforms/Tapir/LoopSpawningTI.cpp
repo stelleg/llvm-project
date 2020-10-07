@@ -1212,8 +1212,8 @@ namespace {
 // for the loop backedge and, possibly, in metadata.
 class ArgEndMaterializer final : public OutlineMaterializer {
 private:
-  Value *TripCount;
-  Value *ArgEnd;
+  Value *TripCount = nullptr;
+  Value *ArgEnd = nullptr;
 public:
   ArgEndMaterializer(const Instruction *SrcSyncRegion, Value *TripCount,
                      Value *ArgEnd)
@@ -1230,11 +1230,27 @@ public:
           return MetadataAsValue::get(V->getContext(),
                                       MDTuple::get(V->getContext(), None));
     }
+=======
+  ArgEndMaterializer(Value *TripCount, Value *ArgEnd, Module *DstM)
+      : OutlineMaterializer(DstM), TripCount(TripCount), ArgEnd(ArgEnd) {}
 
-    // Materialize TripCount with ArgEnd.  This should only occur in the loop
-    // latch, and we'll overwrite the use of ArgEnd later.
-    if (V == TripCount)
-      return ArgEnd;
+  Value *materialize(Value *V) override final {
+    if (TripCount && ArgEnd) {
+      // If we're materializing metadata for TripCount, materialize empty
+      // metadata instead.
+      if (auto *MDV = dyn_cast<MetadataAsValue>(V)) {
+        Metadata *MD = MDV->getMetadata();
+        if (auto *LAM = dyn_cast<LocalAsMetadata>(MD))
+          if (LAM->getValue() == TripCount)
+            return MetadataAsValue::get(V->getContext(),
+                                        MDTuple::get(V->getContext(), None));
+      }
+
+      // Materialize TripCount with ArgEnd.  This should only occur in the loop
+      // latch, and we'll overwrite the use of ArgEnd later.
+      if (V == TripCount)
+        return ArgEnd;
+    }
 
     // Otherwise go with the default behavior.
     return OutlineMaterializer::materialize(V);
@@ -1280,6 +1296,15 @@ Function *LoopSpawningImpl::createHelperForTapirLoop(
                                  Args[LimitArgIndex]);
   else
     Mat = new OutlineMaterializer(InputSyncRegion);
+  // If the trip count is variable and we're not otherwise passing the trip
+  // count as an argument, temporarily map the trip count to the end argument.
+  if (!isa<Constant>(TL->getTripCount()) && !Args.count(TL->getTripCount())) {
+    // Create an ArgEndMaterializer to handle uses of TL->getTripCount().
+    Mat = new ArgEndMaterializer(TL->getTripCount(), Args[LimitArgIndex],
+                                 (F.getParent() != DestM ? DestM : nullptr));
+  } else if (F.getParent() != DestM) {
+    Mat = new OutlineMaterializer(DestM);
+  }
 
   Twine NameSuffix = ".ls" + Twine(TL->getLoop()->getLoopDepth());
   SmallVector<ReturnInst *, 4> Returns;  // Ignore returns cloned.

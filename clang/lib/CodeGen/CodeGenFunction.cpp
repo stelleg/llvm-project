@@ -2533,11 +2533,6 @@ CodeGenFunction::SanitizerScope::~SanitizerScope() {
 }
 
 void CodeGenFunction::DetachScope::StartLabeledDetach(SyncRegion* SR) {
-  if (!DetachInitialized)
-    InitDetachScope();
-  else
-    RestoreDetachScope();
-
   // Create the detach
   CGF.Builder.CreateDetach(DetachedBlock, ContinueBlock,
                            SR->getSyncRegionStart());

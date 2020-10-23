@@ -699,7 +699,7 @@ Function *llvm::createHelperForTask(
                        TimerGroupName, TimerGroupDescription,
                        TimePassesIsEnabled);
   Helper =
-    CreateHelper(Args, Outputs, TaskBlocks, Header, Entry, DI->getContinue(),
+    CreateHelper(Args, Args, Outputs, TaskBlocks, Header, Entry, DI->getContinue(),
                  VMap, DestM, F.getSubprogram() != nullptr, Returns,
                  NameSuffix.str(), &ReattachBlocks, &TaskResumeBlocks,
                  &SharedEHEntries, nullptr, nullptr,
@@ -882,7 +882,7 @@ Function *llvm::createHelperForTaskFrame(
                        TimerGroupName, TimerGroupDescription,
                        TimePassesIsEnabled);
   Helper =
-    CreateHelper(Args, Outputs, TaskBlocks, Header, Entry, Continue,
+    CreateHelper(Args, Args, Outputs, TaskBlocks, Header, Entry, Continue,
                  VMap, DestM, F.getSubprogram() != nullptr, Returns,
                  NameSuffix.str(), &TFEndBlocks, &TFResumeBlocks,
                  &SharedEHEntries, nullptr, nullptr, nullptr, ReturnType,

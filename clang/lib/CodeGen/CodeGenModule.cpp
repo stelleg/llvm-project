@@ -53,6 +53,7 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Verifier.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/ProfileSummary.h"
 #include "llvm/ProfileData/InstrProfReader.h"
@@ -989,8 +990,11 @@ CodeGenModule::mergeTBAAInfoForMemoryTransfer(TBAAAccessInfo DestInfo,
 
 void CodeGenModule::DecorateInstructionWithTBAA(llvm::Instruction *Inst,
                                                 TBAAAccessInfo TBAAInfo) {
-  if (llvm::MDNode *Tag = getTBAAAccessTagInfo(TBAAInfo))
+  if (llvm::MDNode *Tag = getTBAAAccessTagInfo(TBAAInfo)) {
     Inst->setMetadata(llvm::LLVMContext::MD_tbaa, Tag);
+    llvm::TBAAVerifier V;
+    assert(V.visitTBAAMetadata(*Inst, Tag) && "invalid TBAA metadata!");
+  }
 }
 
 void CodeGenModule::DecorateInstructionWithInvariantGroup(

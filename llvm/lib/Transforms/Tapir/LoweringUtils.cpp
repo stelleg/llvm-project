@@ -50,10 +50,10 @@ TapirTarget *llvm::getTapirTargetFromID(Module &M, TapirTargetID ID) {
   case TapirTargetID::Cheetah:
   case TapirTargetID::OpenCilk:
     return new OpenCilkABI(M);
-  case TapirTargetID::OpenCL:
-    return new OpenCLABI(M);
   case TapirTargetID::OpenMP:
     return new OpenMPABI(M);
+  case TapirTargetID::OpenCL:
+    return new OpenCLABI(M);
   case TapirTargetID::Qthreads:
     return new QthreadsABI(M);
   default:
@@ -711,7 +711,7 @@ Function *llvm::createHelperForTask(
         std::make_unique<OutlineMaterializer>(
             dyn_cast<Instruction>(DI->getSyncRegion()));
     Helper = CreateHelper(
-        Args, Args, Outputs, TaskBlocks, Header, Entry, DI->getContinue(), VMap,
+        Args, Outputs, TaskBlocks, Header, Entry, DI->getContinue(), VMap,
         DestM, F.getSubprogram() != nullptr, Returns, NameSuffix.str(),
         &ReattachBlocks, &TaskResumeBlocks, &SharedEHEntries, nullptr, nullptr,
         ReturnType, nullptr, nullptr, Mat.get());
@@ -895,7 +895,7 @@ Function *llvm::createHelperForTaskFrame(
                          TimePassesIsEnabled);
     std::unique_ptr<OutlineMaterializer> Mat =
         std::make_unique<OutlineMaterializer>();
-    Helper = CreateHelper(Args, Args, Outputs, TaskBlocks, Header, Entry, Continue,
+    Helper = CreateHelper(Args, Outputs, TaskBlocks, Header, Entry, Continue,
                           VMap, DestM, F.getSubprogram() != nullptr, Returns,
                           NameSuffix.str(), &TFEndBlocks, &TFResumeBlocks,
                           &SharedEHEntries, nullptr, nullptr, ReturnType,
@@ -1204,9 +1204,6 @@ Instruction *llvm::replaceLoopWithCallToOutline(
                       TopCall->getParent());
     return TopCall;
   }
-  auto *br = BranchInst::Create(Out.ReplRet); 
-  ReplaceInstWithInst(Out.ReplCall, br); 
-  return br; 
 }
 
 bool TapirTarget::shouldProcessFunction(const Function &F) const {

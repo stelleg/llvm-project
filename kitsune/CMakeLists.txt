@@ -17,4 +17,7 @@ if (KITSUNE_ENABLE_CUDA_RUNTIME)
    add_subdirectory(lib/CudaRT)
 endif()
 
-add_subdirectory(lib/OpenCL)
+if (KITSUNE_ENABLE_OPENCL_RUNTIME)
+  add_definitions(-DKITSUNE_ENABLE_OPENCL_RUNTIME)
+  add_subdirectory(lib/OpenCL)
+endif()

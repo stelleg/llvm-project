@@ -2,6 +2,7 @@ add_llvm_component_library(LLVMTapirOpts
   CilkABI.cpp
   CilkRTSCilkFor.cpp
   CudaABI.cpp
+  HIPABI.cpp
   DRFScopedNoAliasAA.cpp
   LoopSpawningTI.cpp
   LoopStripMine.cpp

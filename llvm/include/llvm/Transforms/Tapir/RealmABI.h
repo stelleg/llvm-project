@@ -22,6 +22,7 @@
 namespace llvm {
 
 class RealmABI : public TapirTarget {
+  ValueToValueMapTy SyncRegionToBarrier; 
 
   Type *TaskFuncPtrTy = nullptr;
 

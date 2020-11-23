@@ -1,7 +1,8 @@
 // Written by Alexis Perry-Holby for use with Tapir-LLVM
 
 #include "kitsune_realm_c.h"
-#include "realm.h"
+#include <realm.h>
+#include <realm/tasks.h>
 #include <set>
 #include <vector>
 #include <atomic>

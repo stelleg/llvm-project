@@ -62,6 +62,7 @@ add_llvm_component_library(LLVMAnalysis
   DivergenceAnalysis.cpp
   DomPrinter.cpp
   DomTreeUpdater.cpp
+  DomDagUpdater.cpp
   DominanceFrontier.cpp
   EHPersonalities.cpp
   FunctionPropertiesAnalysis.cpp

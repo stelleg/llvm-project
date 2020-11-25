@@ -24,6 +24,8 @@
 #include "llvm/Analysis/AssumptionCache.h"
 #include "llvm/Analysis/InstructionSimplify.h"
 #include "llvm/Analysis/IteratedDominanceFrontier.h"
+#include "llvm/Analysis/DomDagUpdater.h"
+#include "llvm/Transforms/Utils/Local.h"
 #include "llvm/Analysis/ValueTracking.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/CFG.h"
@@ -544,6 +546,7 @@ static bool promoteSingleBlockAlloca(AllocaInst *AI, const AllocaInfo &Info,
 
 void PromoteMem2Reg::run() {
   Function &F = *DT.getRoot()->getParent();
+  DomDagUpdater(DT).addDagEdges(F); 
 
   AllocaDbgUsers.resize(Allocas.size());
 

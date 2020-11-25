@@ -29,7 +29,8 @@ DomDagUpdater::addDagEdges(Function& F){
   DenseMap<Value*, SmallSet<BasicBlock*, 4>*> vbrs; 
   for(auto &BB : F){
     if(auto *br = dyn_cast<BranchInst>(BB.getTerminator())){
-      if(Value* v = br->getCondition()){
+      if(br->isConditional() && br->getNumSuccessors() == 2){
+        Value* v = br->getCondition(); 
         auto bbs = vbrs.find(v); 
         if(bbs != vbrs.end()){
           bbs->second->insert(&BB); 
@@ -46,10 +47,9 @@ DomDagUpdater::addDagEdges(Function& F){
   for(auto kv : vbrs){
     if(auto bbs = kv.second){
       for(auto bb = bbs->begin(); bb != bbs->end(); bb++){
-        for(auto bbn = ++bb; bbn != bbs->end(); bbn++){
+        for(auto bbn = bb; ++bbn != bbs->end(); ){
           auto term = (*bb)->getTerminator(); 
           auto termn = (*bbn)->getTerminator(); 
-          // Assuming only two children
           if(DT->dominates(*bb, *bbn)){
             auto bbl = term->getSuccessor(0); 
             auto bbln = termn->getSuccessor(0); 

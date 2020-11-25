@@ -720,6 +720,13 @@ protected:
     changeImmediateDominator(getNode(BB), getNode(NewBB));
   }
 
+  // We add an interface for data-sensitive analyses to add dominance dag
+  // relations directly
+  void addDominanceRelation(NodeT* Parent, NodeT* Child){
+    getNode(Parent)->addChild(getNode(Child));
+    getNode(Child)->addIDom(getNode(Parent)); 
+  }
+
   /// eraseNode - Removes a node from the dominator tree. Block must not
   /// dominate any other blocks. Removes node from its immediate dominator's
   /// children list. Deletes dominator node associated with basic block BB.

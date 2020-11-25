@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_ANALYSIS_DOMTREEUPDATER_H
-#define LLVM_ANALYSIS_DOMTREEUPDATER_H
+#ifndef LLVM_ANALYSIS_DOMDAGUPDATER_H
+#define LLVM_ANALYSIS_DOMDAGUPDATER_H
 
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/Dominators.h"

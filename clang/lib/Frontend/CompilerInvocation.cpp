@@ -3700,6 +3700,8 @@ bool CompilerInvocation::CreateFromArgs(CompilerInvocation &Res,
       LangOpts.Tapir = TapirTargetID::Qthreads;
     else if (Name == "cuda")
       LangOpts.Tapir = TapirTargetID::Cuda;
+    else if (Name == "hip")
+      LangOpts.Tapir = TapirTargetID::HIP;
     else if (Name == "kitcuda")
       LangOpts.Tapir = TapirTargetID::KitCuda;
     else if (Name == "realm")

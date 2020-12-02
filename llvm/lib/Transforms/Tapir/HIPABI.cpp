@@ -41,22 +41,18 @@ using namespace llvm;
 constexpr unsigned HIPFatMagic = 0x466243b1;
 
 static cl::opt<std::string>
-GPUArch("tapir-gpu-arch", cl::init("sm_70"),
+GPUArch("tapir-amd-gpu-arch", cl::init("gfx1010"),
         cl::desc("GPU architecture for Tapir-HIP backend"));
 
 static cl::opt<std::string>
-GPUFeatures("tapir-gpu-features", cl::init("+amdgcn64"),
+GPUFeatures("tapir-amd-gpu-features", cl::init("+amdgcn64"),
             cl::desc("GPU features for Tapir-HIP backend"));
 
 static cl::opt<std::string>
 AMDGCNASOptLevel("tapir-amdgcnas-opt", cl::init("-O2"),
             cl::desc("Optimization level for AMDGCNAS"));
 
-// const unsigned ThreadsPerBlock = 1024;
-static cl::opt<unsigned> ThreadsPerBlock(
-    "threads-per-block", cl::init(1024), cl::Hidden,
-    cl::desc("Use this threads-per-block count"));
-// TODO: Better ThreadsPerBlock value = 256?
+const unsigned ThreadsPerBlock = 1024;
 
 static cl::opt<bool>
 Verbose("tapir-hip-verbose", cl::init(false),
@@ -459,7 +455,7 @@ void AMDGCNLoop::makeFatBinaryString() {
   LLVM_DEBUG(dbgs() << "AMDGCN Module: " << AMDGCNM);
 
   // Get amdgcnas and fatbinary executables on the system.
-  auto AMDGCNASExec  = sys::findProgramByName("ptxas");
+  auto AMDGCNASExec  = sys::findProgramByName("amdgcn");
   auto FatBinExec = sys::findProgramByName("fatbinary");
   LLVM_DEBUG({
       if (AMDGCNASExec)
@@ -669,7 +665,7 @@ AMDGCNLoop::AMDGCNLoop(Module &M)
   MyKernelID = NextKernelID++;
 
   // Setup an NVAMDGCN triple.
-  Triple AMDGCNTriple("nvptx64", "nvidia", "hip");
+  Triple AMDGCNTriple("amdgcn", "", "");
   AMDGCNM.setTargetTriple(AMDGCNTriple.str());
   AMDGCNM.setSDKVersion(VersionTuple(10, 1));
   if (M.getSDKVersion().empty())
@@ -680,15 +676,15 @@ AMDGCNLoop::AMDGCNLoop(Module &M)
   const Target *AMDGCNTarget = TargetRegistry::lookupTarget("", AMDGCNTriple, error);
   LLVM_DEBUG({
       if (!AMDGCNTarget)
-        dbgs() << "ERROR: Failed to lookup NVAMDGCN target: " << error << "\n";
+        dbgs() << "ERROR: Failed to lookup AMDGCN target: " << error << "\n";
     });
-  assert(AMDGCNTarget && "Failed to find NVAMDGCN target");
+  assert(AMDGCNTarget && "Failed to find AMDGCN target");
 
   // TODO: Hard-coded machine configuration for Supercloud nodes with Voltas and
   // HIP 10.1  Generalize this code.
   AMDGCNTargetMachine =
       AMDGCNTarget->createTargetMachine(AMDGCNTriple.getTriple(), GPUArch,
-                                     "+ptx64", TargetOptions(), Reloc::PIC_,
+                                     "+amdgcn64", TargetOptions(), Reloc::PIC_,
                                      CodeModel::Small, CodeGenOpt::Aggressive);
   AMDGCNM.setDataLayout(AMDGCNTargetMachine->createDataLayout());
 

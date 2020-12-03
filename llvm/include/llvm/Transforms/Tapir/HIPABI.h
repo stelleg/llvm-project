@@ -29,18 +29,16 @@ class AMDGCNLoop : public LoopOutlineProcessor {
 protected:
   static unsigned NextKernelID;
   unsigned MyKernelID;
-  Module AMDGCNM;
+  Module AMDGCNM; 
   TargetMachine *AMDGCNTargetMachine;
   GlobalVariable *AMDGCNGlobal;
+  std::string GlobalName; 
 
-  FunctionCallee GetThreadIdx = nullptr;
-  FunctionCallee GetBlockIdx = nullptr;
+  FunctionCallee GetThreadId = nullptr;
+  FunctionCallee GetBlockId = nullptr;
   FunctionCallee GetBlockDim = nullptr;
 
-  void EmitAMDGCN(raw_pwrite_stream *OS);
-  void makeFatBinaryString();
-  virtual Function *makeModuleCtorFunction() { return nullptr; }
-  virtual Function *makeModuleDtorFunction() { return nullptr; }
+  void EmitAMDGCN();
 public:
   AMDGCNLoop(Module &M);
 
@@ -60,46 +58,11 @@ public:
 
 class HIPLoop : public AMDGCNLoop {
 private:
-  Type *Dim3Ty = nullptr;
-  Type *HIPStreamTy = nullptr;
-
-  FunctionCallee HIPLaunchKernel = nullptr;
-  FunctionCallee HIPPopCallConfig = nullptr;
-  FunctionCallee HIPPushCallConfig = nullptr;
-
+  FunctionCallee KitsuneLaunchKernel = nullptr;
   GlobalVariable *GpuBinaryHandle = nullptr;
 
-  FunctionType *getRegisterGlobalsFnTy() const;
-  FunctionType *getCallbackFnTy() const;
-  FunctionType *getRegisterLinkedBinaryFnTy() const;
-
-  Function *makeRegisterGlobalsFn();
-  Function *makeModuleCtorFunction() override;
-  Function *makeModuleDtorFunction() override;
-
-  /// Keeps track of kernel launch stubs emitted in this module
-  struct KernelInfo {
-    Function *Kernel; // HostFunc
-    StringRef DeviceFunc;
-  };
-  SmallVector<KernelInfo, 16> EmittedKernels;
 public:
   HIPLoop(Module &M);
-
-  void processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
-                               DominatorTree &DT) override final;
-};
-
-class KitsuneHIPLoop : public AMDGCNLoop {
-private:
-  FunctionCallee KitsuneHIPInit = nullptr;
-  FunctionCallee KitsuneGPUInitKernel = nullptr;
-  FunctionCallee KitsuneGPUInitField = nullptr;
-  FunctionCallee KitsuneGPUSetRunSize = nullptr;
-  FunctionCallee KitsuneGPURunKernel = nullptr;
-  FunctionCallee KitsuneGPUFinish = nullptr;
-public:
-  KitsuneHIPLoop(Module &M);
 
   void processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
                                DominatorTree &DT) override final;

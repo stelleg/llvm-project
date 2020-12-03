@@ -362,8 +362,8 @@ private:
   DominatorTree &DT;
   PhiValues &PV;
   PredIteratorCache PredCache;
-  unsigned DefaultBlockScanLimit;
   TaskInfo *TI;
+  unsigned DefaultBlockScanLimit;
 
 public:
   MemoryDependenceResults(AliasAnalysis &AA, AssumptionCache &AC,

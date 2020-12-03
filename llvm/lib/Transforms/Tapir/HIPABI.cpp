@@ -41,7 +41,7 @@ using namespace llvm;
 constexpr unsigned HIPFatMagic = 0x466243b1;
 
 static cl::opt<std::string>
-GPUArch("tapir-amd-gpu-arch", cl::init("gfx1010"),
+GPUArch("tapir-amd-gpu-arch", cl::init("gfx900"),
         cl::desc("GPU architecture for Tapir-HIP backend"));
 
 static cl::opt<std::string>

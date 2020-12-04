@@ -47,18 +47,21 @@ void AMDGCNLoop::EmitAMDGCN() {
   legacy::PassManager PM;
   legacy::FunctionPassManager FPM(&AMDGCNM);
 
+	LLVM_DEBUG(dbgs() << "AMDGCN Module before optimizations:" << AMDGCNM); 
+
   PassManagerBuilder Builder;
+  Builder.OptLevel = CodeGenOpt::Default;
+  Builder.SizeLevel = 0;
   Builder.populateFunctionPassManager(FPM);
 
   SmallVector<char, 65536> buf; 
   raw_svector_ostream ostr(buf); 
 
-  /* Add function optimization passes.
+  // Add function optimization passes.
   FPM.doInitialization();
   for (Function &F : AMDGCNM)
     FPM.run(F);
   FPM.doFinalization();
-  */
 
   PM.add(createVerifierPass());
   bool Fail = AMDGCNTargetMachine->addPassesToEmitFile(
@@ -67,8 +70,10 @@ void AMDGCNLoop::EmitAMDGCN() {
   assert(!Fail && "Failed to emit AMDGCN");
   PM.run(AMDGCNM);
 
+	LLVM_DEBUG(dbgs() << "AMDGCN Module after optimizations, before writing to buffer" << AMDGCNM); 
+
   std::string hsaco = ostr.str().str(); 
-  Constant* cda = ConstantDataArray::getString(AMDGCNM.getContext(), hsaco); 
+  Constant* cda = ConstantDataArray::getString(M.getContext(), hsaco); 
   AMDGCNGlobal = new GlobalVariable(M, cda->getType(), true, GlobalValue::PrivateLinkage, cda, GlobalName);  
 }
 
@@ -136,7 +141,6 @@ AMDGCNLoop::AMDGCNLoop(Module &M)
   // Setup an NVAMDGCN triple.
   Triple AMDGCNTriple("amdgcn", "amd", "amdhsa");
   AMDGCNM.setTargetTriple(AMDGCNTriple.str());
-  AMDGCNM.setSDKVersion(VersionTuple(10, 1));
 
   // Find the NVAMDGCN module pass which will create the AMDGCN code
   std::string error;
@@ -148,7 +152,7 @@ AMDGCNLoop::AMDGCNLoop(Module &M)
   assert(AMDGCNTarget && "Failed to find AMDGCN target");
 
   AMDGCNTargetMachine =
-      AMDGCNTarget->createTargetMachine(AMDGCNTriple.getTriple(), "",
+      AMDGCNTarget->createTargetMachine(AMDGCNTriple.getTriple(), "gfx900",
                                      "", TargetOptions(), Reloc::PIC_,
                                      CodeModel::Small, CodeGenOpt::Aggressive);
   AMDGCNM.setDataLayout(AMDGCNTargetMachine->createDataLayout());
@@ -249,7 +253,7 @@ void AMDGCNLoop::postProcessOutline(TapirLoopInfo &TL, TaskOutlineInfo &Out,
     // End argument is the first LC arg.
   Argument *End = &*OutlineArgsIter++;
     // Start argument is the second LC arg.
-  //Argument *Start = &*OutlineArgsIter++;
+  Argument *Start = &*OutlineArgsIter++;
 
   // Get the grainsize value, which is either constant or the third LC arg.
   if (unsigned ConstGrainsize = TL.getGrainsize())
@@ -312,6 +316,7 @@ void HIPLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
   BasicBlock *UnwindDest = TOI.ReplUnwind;
   Function *Parent = ReplCall->getFunction();
   //Value *TripCount = CS.getArgOperand(getLimitArgIndex(*Parent, TOI.InputSet));
+  LLVM_DEBUG(dbgs() << "Post processing AMDGCN Module: " << AMDGCNM); 
 
   LLVMContext &Ctx = M.getContext();
   PointerType *VoidPtrTy = Type::getInt8PtrTy(Ctx);
@@ -380,6 +385,7 @@ void HIPLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
   // hipLaunchKernel needs this function to have the same name as the kernel
   HIPLoopHelper->setName(Outlined->getName());
 
+	
   // Add alignment assumptions to arguments of helper, based on alignment of
   // values in old function.
   AddAlignmentAssumptions(Parent, SHInputs, VMap, ReplCall, nullptr, nullptr);

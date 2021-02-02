@@ -723,8 +723,8 @@ protected:
   // We add an interface for data-sensitive analyses to add dominance dag
   // relations directly
   void addDominanceRelation(NodeT* Parent, NodeT* Child){
-    getNode(Parent)->addChild(getNode(Child));
-    getNode(Child)->addIDom(getNode(Parent)); 
+    getNode(Parent)->addChild(std::move(DomTreeNodes[Child]));
+    getNode(Child)->addIDom(std::move(DomTreeNodes[Parent])); 
   }
 
   /// eraseNode - Removes a node from the dominator tree. Block must not

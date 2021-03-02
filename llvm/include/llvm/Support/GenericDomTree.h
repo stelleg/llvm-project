@@ -106,7 +106,7 @@ template <class NodeT> class DomTreeNodeBase {
   unsigned getLevel() const { return Level; }
 
   const SmallVector<DomTreeNodeBase *, 4> &getChildren() const { return Children; }
-  const SmallVector<DomTreeNodeBase *, 4> &getIDoms() const { return Parents; }
+  const SmallVector<DomTreeNodeBase *, 2> &getIDoms() const { return IDoms; }
 
   std::unique_ptr<DomTreeNodeBase> addChild(
       std::unique_ptr<DomTreeNodeBase> C) {
@@ -114,11 +114,15 @@ template <class NodeT> class DomTreeNodeBase {
     return C;
   }
 
+  DomTreeNodeBase* addDAGChild(DomTreeNodeBase* C) {
+    Children.push_back(C);
+    return C;
+  }
+
   bool isLeaf() const { return Children.empty(); }
 
-  std::unique_ptr<DomTreeNodeBase> addIDom(
-      std::unique_ptr<DomTreeNodeBase> P) {
-    IDoms.push_back(P.get());
+  DomTreeNodeBase* addIDom(DomTreeNodeBase* P) {
+    IDoms.push_back(P);
     return P; 
   }
 
@@ -723,8 +727,8 @@ protected:
   // We add an interface for data-sensitive analyses to add dominance dag
   // relations directly
   void addDominanceRelation(NodeT* Parent, NodeT* Child){
-    getNode(Parent)->addChild(std::move(DomTreeNodes[Child]));
-    getNode(Child)->addIDom(std::move(DomTreeNodes[Parent])); 
+    getNode(Parent)->addDAGChild(getNode(Child));
+    getNode(Child)->addIDom(getNode(Parent)); 
   }
 
   /// eraseNode - Removes a node from the dominator tree. Block must not

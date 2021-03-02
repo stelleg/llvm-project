@@ -10,7 +10,7 @@
 // to update dominator tree related data structures.
 //
 //===----------------------------------------------------------------------===//
-
+#include <stdio.h>
 #include "llvm/Analysis/DomDagUpdater.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/DenseMap.h"
@@ -24,15 +24,17 @@ namespace llvm {
 
 SmallVector<std::pair<BasicBlock*, BasicBlock*>, 4>  
 DomDagUpdater::addDagEdges(Function& F){
+  printf("running dag edges\n"); 
   // We record each branch variable and the basic block whos terminator it
   // controls. 
   DenseMap<Value*, SmallSet<BasicBlock*, 4>*> vbrs; 
-  for(auto &BB : F){
+  for(BasicBlock &BB : F){
     if(auto *br = dyn_cast<BranchInst>(BB.getTerminator())){
       if(br->isConditional() && br->getNumSuccessors() == 2){
         Value* v = br->getCondition(); 
         auto bbs = vbrs.find(v); 
         if(bbs != vbrs.end()){
+          printf("found common condition!\n");
           bbs->second->insert(&BB); 
         }
         else{
@@ -43,33 +45,47 @@ DomDagUpdater::addDagEdges(Function& F){
       }
     }
   }
+  printf("done collecting conditions\n"); 
   SmallVector<std::pair<BasicBlock*, BasicBlock*>, 4> res; 
   for(auto kv : vbrs){
-    if(auto bbs = kv.second){
-      for(auto bb = bbs->begin(); bb != bbs->end(); bb++){
-        for(auto bbn = bb; ++bbn != bbs->end(); ){
-          auto term = (*bb)->getTerminator(); 
-          auto termn = (*bbn)->getTerminator(); 
-          if(DT->dominates(*bb, *bbn)){
+    auto bbs = kv.second;
+    if(bbs->size() > 1){  
+      printf("processing common condition\n"); 
+      SmallVector<BasicBlock*> stack; 
+      for(BasicBlock *bb : *bbs){
+        for(BasicBlock *bbn : stack){
+          printf("processing basic block pair\n"); 
+          auto term = bb->getTerminator(); 
+          auto termn = bbn->getTerminator(); 
+          printf(" terminators ok\n"); 
+          if(DT->dominates(bb, bbn)){
+            printf(" dominates forward\n"); 
             auto bbl = term->getSuccessor(0); 
             auto bbln = termn->getSuccessor(0); 
-            DT->insertEdge(bbl, bbln); 
+            DT->addDominanceRelation(bbl, bbln); 
             res.push_back({bbl,bbl}); 
             auto bbr = term->getSuccessor(1); 
             auto bbrn = termn->getSuccessor(1); 
-            DT->insertEdge(bbr, bbrn); 
+            DT->addDominanceRelation(bbr, bbrn); 
             res.push_back({bbr,bbrn}); 
-          } else if(DT->dominates(*bbn, *bb)){
+            printf(" handled dominates forward\n"); 
+          } else if(DT->dominates(bbn, bb)){
+            printf(" dominates backwards\n"); 
             auto bbl = term->getSuccessor(0); 
             auto bbln = termn->getSuccessor(0); 
-            DT->insertEdge(bbln, bbl); 
+            printf(" got false successors\n"); 
+            DT->addDominanceRelation(bbln, bbl); 
+            printf(" added dom rel\n"); 
             res.push_back({bbln,bbl}); 
             auto bbr = term->getSuccessor(1); 
             auto bbrn = termn->getSuccessor(1); 
-            DT->insertEdge(bbrn, bbr); 
+            printf(" got true successors\n"); 
+            DT->addDominanceRelation(bbrn, bbr); 
             res.push_back({bbrn,bbr}); 
+            printf(" handled dominates backwards\n"); 
           }
         }
+        stack.push_back(bb); 
       }
     }
   }

@@ -151,7 +151,7 @@ struct SemiNCAInfo {
     auto Ps = getIDoms(BB); 
 
     assert(!Ps.empty() || DT.DomTreeNodes[nullptr]);
-    SmallVector<TreeNodePtr, 4> PNodes; 
+    SmallVector<TreeNodePtr, 2> PNodes; 
     for(auto p : Ps)
       PNodes.push_back(getNodeForBlock(p, DT)); 
       //TreeNodePtr IDomNode = getNodeForBlock(IDom, DT);

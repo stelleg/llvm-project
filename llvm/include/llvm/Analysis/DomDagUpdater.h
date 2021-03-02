@@ -33,7 +33,7 @@ public:
   bool hasDomTree() const { return DT != nullptr; }
 
   /// Notify DTU that the entry block was replaced.
-  /// Recalculate all available trees and flush all BasicBlocks
+  /// Recalculate all available dag and flush all BasicBlocks
   /// awaiting deletion immediately.
   SmallVector<std::pair<BasicBlock*, BasicBlock*>, 4> addDagEdges(Function &F);
 
@@ -44,4 +44,4 @@ private:
 };
 } // namespace llvm
 
-#endif // LLVM_ANALYSIS_DOMTREEUPDATER_H
+#endif // LLVM_ANALYSIS_DOMDAGUPDATER_H

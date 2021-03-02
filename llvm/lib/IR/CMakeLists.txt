@@ -77,4 +77,5 @@ add_llvm_component_library(LLVMCore
   BinaryFormat
   Remarks
   Support
+  Analysis
   )

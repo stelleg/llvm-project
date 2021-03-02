@@ -25,6 +25,7 @@ using namespace llvm;
 /// library.
 void llvm::initializeTransformUtils(PassRegistry &Registry) {
   initializeAddDiscriminatorsLegacyPassPass(Registry);
+  initializeRefinePhisLegacyPassPass(Registry);
   initializeAssumeSimplifyPassLegacyPassPass(Registry);
   initializeAssumeBuilderPassLegacyPassPass(Registry);
   initializeBreakCriticalEdgesPass(Registry);
@@ -64,4 +65,8 @@ void LLVMAddPromoteMemoryToRegisterPass(LLVMPassManagerRef PM) {
 
 void LLVMAddAddDiscriminatorsPass(LLVMPassManagerRef PM) {
   unwrap(PM)->add(createAddDiscriminatorsPass());
+}
+
+void LLVMAddRefinePhisPass(LLVMPassManagerRef PM) {
+  unwrap(PM)->add(createRefinePhisPass());
 }

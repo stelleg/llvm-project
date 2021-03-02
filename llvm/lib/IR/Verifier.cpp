@@ -105,6 +105,7 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Analysis/DomDagUpdater.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
@@ -371,8 +372,10 @@ public:
     // out-of-date dominator tree and makes it significantly more complex to run
     // this code outside of a pass manager.
     // FIXME: It's really gross that we have to cast away constness here.
-    if (!F.empty())
+    if (!F.empty()){
       DT.recalculate(const_cast<Function &>(F));
+      DomDagUpdater(DT).addDagEdges(const_cast<Function &>(F)); 
+    }
 
     for (const BasicBlock &BB : F) {
       if (!BB.empty() && BB.back().isTerminator())

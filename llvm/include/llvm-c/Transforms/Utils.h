@@ -40,6 +40,9 @@ void LLVMAddPromoteMemoryToRegisterPass(LLVMPassManagerRef PM);
 /** See llvm::createAddDiscriminatorsPass function. */
 void LLVMAddAddDiscriminatorsPass(LLVMPassManagerRef PM);
 
+/** See llvm::createRefinePhisPass function. */
+void LLVMAddRefinePhisPass(LLVMPassManagerRef PM);
+
 /**
  * @}
  */

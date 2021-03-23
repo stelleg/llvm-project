@@ -484,13 +484,6 @@ static Attr *ProcessStmtAttribute(Sema &S, Stmt *St, const ParsedAttr &A,
     return handleSuppressAttr(S, St, A, Range);
   case ParsedAttr::AT_NoMerge:
     return handleNoMergeAttr(S, St, A, Range);
-  // +==== kitsune attr support 
-  case ParsedAttr::AT_KitsuneTarget:
-    return handleKitsuneTargetAttr(S, St, A, Range);
-    break;
-  case ParsedAttr::AT_KitsuneStrategy:
-    return handleKitsuneStrategyAttr(S, St, A, Range);
-    break;
   // =====+
   case ParsedAttr::AT_TapirRTTarget:
     return handleTapirRTTargetAttr(S, St, A, Range);

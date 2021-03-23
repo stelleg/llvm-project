@@ -26,7 +26,6 @@
 #include "llvm/Transforms/Utils/TapirUtils.h"
 #include "llvm/Transforms/Utils/CodeExtractor.h"
 #include "llvm/Transforms/Utils/ValueMapper.h"
-#include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
 

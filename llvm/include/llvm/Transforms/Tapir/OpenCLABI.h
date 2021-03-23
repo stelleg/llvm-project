@@ -50,7 +50,7 @@ public:
     override final;
 
   LoopOutlineProcessor *getLoopOutlineProcessor(const TapirLoopInfo *TL)
-    override final;
+    const override final;
 };
 
 class SPIRVLoop : public LoopOutlineProcessor {

@@ -249,7 +249,7 @@ StmtResult Parser::ParseForallStatement(SourceLocation *TrailingElseLoc) {
       // missing both semicolons.
     } else {
       if (getLangOpts().CPlusPlus) {
-        // C++2a: We've parsed an init-statement; we might have a
+        // C++20: We've parsed an init-statement; we might have a
         // for-range-declaration next.
         bool MightBeForRangeStmt = !ForRangeInfo.ParsedForRangeDecl();
         ColonProtectionRAIIObject ColonProtection(*this, MightBeForRangeStmt);
@@ -260,7 +260,7 @@ StmtResult Parser::ParseForallStatement(SourceLocation *TrailingElseLoc) {
         if (ForRangeInfo.ParsedForRangeDecl()) {
           Diag(FirstPart.get() ? FirstPart.get()->getBeginLoc()
                                : ForRangeInfo.ColonLoc,
-               getLangOpts().CPlusPlus2a
+               getLangOpts().CPlusPlus20
                    ? diag::warn_cxx17_compat_for_range_init_stmt
                    : diag::ext_for_range_init_stmt)
               << (FirstPart.get() ? FirstPart.get()->getSourceRange()

@@ -16,7 +16,6 @@
 namespace llvm {
 
 enum class TapirTargetID {
-  Off,      // Completely disabled (i.e., no -ftapir argument was present). 
   None,     // Perform no lowering
   Serial,   // Lower to serial projection
   Cheetah,  // Lower to the Cheetah ABI
@@ -24,9 +23,10 @@ enum class TapirTargetID {
   CilkR,    // Lower to the CilkR ABI
   Cuda,     // Lower to Cuda ABI
   OpenCilk, // Lower to OpenCilk ABI
-  OpenCL,   // Lower to OpenCL ABI
   OpenMP,   // Lower to OpenMP
+  OpenCL,   // Lower to OpenCL
   Qthreads, // Lower to Qthreads
+	Off,
   Last_TapirTargetID
 };
 

@@ -9,9 +9,9 @@ add_llvm_component_library(LLVMTapirOpts
   LoweringUtils.cpp
   OpenCilkABI.cpp
   OpenMPABI.cpp
-  OpenCLABI.cpp
   Outline.cpp
   QthreadsABI.cpp
+	OpenCLABI.cpp
   SerialABI.cpp
   SerializeSmallTasks.cpp
   Tapir.cpp
@@ -26,6 +26,5 @@ add_llvm_component_library(LLVMTapirOpts
   intrinsics_gen
   LLVMLinker
 
-  LINK_LIBS LLVMSPIRVLib
+	LINK_LIBS LLVMSPIRVLib
   )
-

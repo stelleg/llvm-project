@@ -26,7 +26,6 @@
 #include "llvm/Transforms/Tapir/LoopStripMine.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
 #include "llvm/Transforms/Utils/TapirUtils.h"
-#include "llvm/Support/CommandLine.h"
 
 using namespace llvm;
 

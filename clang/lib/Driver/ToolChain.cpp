@@ -1503,6 +1503,9 @@ void ToolChain::AddTapirRuntimeLibArgs(const ArgList &Args,
   case TapirTargetID::Qthreads:
     CmdArgs.push_back("-lqthread");
     break;
+  case TapirTargetID::OpenCL:
+    CmdArgs.push_back("-lkitsuneOpenCL");
+    break;
   default:
     break;
   }

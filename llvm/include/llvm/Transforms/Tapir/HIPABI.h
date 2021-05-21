@@ -73,8 +73,8 @@ class HIPABI : public TapirTarget {
 public:
   HIPABI(Module &M) : TapirTarget(M) {}
   ~HIPABI() {
-    if (LOP)
-      delete LOP;
+    //if (LOP)
+    //  delete LOP;
   }
   Value *lowerGrainsizeCall(CallInst *GrainsizeCall) override final;
   void lowerSync(SyncInst &SI) override final;

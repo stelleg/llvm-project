@@ -52,23 +52,24 @@ void AMDGCNLoop::EmitAMDGCN() {
   PassManagerBuilder Builder;
   Builder.OptLevel = CodeGenOpt::Default;
   Builder.SizeLevel = 0;
+  AMDGCNTargetMachine->adjustPassManager(Builder);
+	Builder.populateModulePassManager(PM); 
   Builder.populateFunctionPassManager(FPM);
 
   SmallVector<char, 65536> buf; 
   raw_svector_ostream ostr(buf); 
 
-  // Add function optimization passes.
   FPM.doInitialization();
   for (Function &F : AMDGCNM)
     FPM.run(F);
   FPM.doFinalization();
-
   PM.add(createVerifierPass());
+  //PM.run(AMDGCNM);
   bool Fail = AMDGCNTargetMachine->addPassesToEmitFile(
       PM, ostr, nullptr,
       CodeGenFileType::CGFT_ObjectFile, false);
   assert(!Fail && "Failed to emit AMDGCN");
-  PM.run(AMDGCNM);
+  // Add function optimization passes.
 
 	LLVM_DEBUG(dbgs() << "AMDGCN Module after optimizations, before writing to buffer" << AMDGCNM); 
 
@@ -351,7 +352,9 @@ void HIPLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
       ++Index; ++ArgNum;
     }
   }
-
+	
+ //hip
+	
   // Update the value of ReplCall.
   ReplCall = TOI.ReplCall;
 

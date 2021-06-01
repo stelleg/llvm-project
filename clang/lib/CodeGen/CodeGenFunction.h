@@ -3908,6 +3908,7 @@ public:
   bool EmitKokkosInnerLoop(const CallExpr *CE, const LambdaExpr *Lambda,
             llvm::BasicBlock *TopBlock,
             std::queue<const Expr*> DimQueue,
+            std::queue<const Expr*> StartQueue,
             std::queue<const ParmVarDecl*> params);
   bool EmitKokkosParallelReduce(const CallExpr *CE, ArrayRef<const Attr *> Attrs);
   bool InKokkosConstruct = false; // FIXME: Should/can we refactor this away?

@@ -716,7 +716,7 @@ void PromoteMem2Reg::run() {
   }
 
   // Check if a PHI is inserted at a task-continue block.
-  {
+  /*{
     bool badPhi = false;
     for (DenseMap<std::pair<unsigned, unsigned>, PHINode *>::iterator
            I = NewPhiNodes.begin(),
@@ -739,7 +739,7 @@ void PromoteMem2Reg::run() {
       }
     }
     assert(!badPhi && "PromoteMem2Reg inserted illegal phi.");
-  }
+  }*/
 
   // At this point, the renamer has added entries to PHI nodes for all reachable
   // code.  Unfortunately, there may be unreachable blocks which the renamer

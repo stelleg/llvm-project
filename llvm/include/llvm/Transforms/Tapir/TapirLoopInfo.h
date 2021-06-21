@@ -46,7 +46,7 @@ public:
   /// InductionList saves induction variables and maps them to the induction
   /// descriptor.
   using InductionList = MapVector<PHINode *, InductionDescriptor>;
-
+ 
   TapirLoopInfo(Loop *L, Task *T) : TheLoop(L), TheTask(T) {
     // Get the exit block for this loop.
     Instruction *TI = TheLoop->getLoopLatch()->getTerminator();

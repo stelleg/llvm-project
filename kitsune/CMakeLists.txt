@@ -41,7 +41,7 @@ message(STATUS "Kitsune binary directory: ${KITSUNE_BINARY_DIR}")
 option(KITSUNE_INCLUDE_TESTS
   "Enable Kitsune tests." ${LLVM_INCLUDE_TESTS})
 option(KITSUNE_BUILD_EXAMPLES
-  "Build Kitsune example programs by default." ${KITSUNE_INCLUDE_TESTS}) 
+  "Build Kitsune example programs by default." OFF) 
 
 # Add Kitsune-centric modules to cmake path.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")

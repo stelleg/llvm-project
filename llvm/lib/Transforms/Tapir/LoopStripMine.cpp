@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <set>
+#include <iostream>
 #include "llvm/Transforms/Tapir/LoopStripMine.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/Statistic.h"
@@ -1555,5 +1557,54 @@ Loop *llvm::StripMineLoop(Loop *L, unsigned Count, bool AllowExpensiveTripCount,
     // Optimize this routine in the future.
     TI->recalculate(*F, *DT);
 
+  // iterate through the stores that should be treated as reductions
+  const std::vector<BasicBlock*>& blocks = L->getBlocks(); 
+  std::set<Value*> reductions;  
+  for (BasicBlock *BB : blocks)
+    for (Instruction &I : *BB) {
+      if(auto si = dyn_cast<StoreInst>(&I)){
+        // TODO: better check if the store should be treated as a
+        // reduction. What we're doing is just checking if it's
+        // storing to a loop invariant pointer
+        Value* ptr = si->getPointerOperand(); 
+        if(L->isLoopInvariant(ptr))
+          reductions.insert(ptr); 
+      }
+    }
+
+  ValueToValueMap redMap; 
+  // TODO: Potentially modify the strip mining constant to be smaller:
+  // currently we are stack allocating n/2048 reduction values.
+  // TODO: Initialize local reductions with unit values
+  for(Value* ptr : reductions){
+    IRBuilder<> B(F->getEntryBlock().getTerminator()); 
+    auto ty = dyn_cast<PointerType>(ptr->getType())->getElementType(); 
+    auto al = B.CreateAlloca(ty, TripCount, ptr->getName() + "_reduction");
+    IRBuilder<> BH(L->getHeader()->getTerminator()); 
+    auto lptr = BH.CreateBitCast(
+      BH.CreateGEP(al, NewIdx), 
+      ptr->getType());                             
+    redMap[ptr] = al; 
+    // TODO: for now, just initializing with the initial sequential
+    // reduction value, which is often unit, but if it isn't this is
+    // wrong.
+    ptr->replaceUsesWithIf(lptr, [L](Use &u){
+      if(auto I = dyn_cast<Instruction>(u.getUser())){
+        I->dump(); 
+        return L->contains(I->getParent()); 
+      } else {
+        return false;
+      }; 
+    });
+    BH.CreateStore(BH.CreateLoad(ptr), lptr);  
+  }
+  
+  // TODO: Epilog "join" of reduction values stored in local reduction
+  // value arrays. Should be able to use redMap to map original
+  // pointer (which is still used to reduce the remainder of the
+  // strimined loop, so you probably want to start the reduction with
+  // that value).
+  F->dump(); 
+  
   return NewLoop;
 }

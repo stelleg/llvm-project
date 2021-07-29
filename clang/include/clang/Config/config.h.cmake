@@ -53,10 +53,9 @@
 /* Directories clang will search for headers */
 #define C_INCLUDE_DIRS "${C_INCLUDE_DIRS}"
 
-/* Directories clang will search for configuration files */
+/* Directories clang will search for configuration files w/ kitsune+tapir extensions */
 #cmakedefine CLANG_CONFIG_FILE_SYSTEM_DIR "${CLANG_CONFIG_FILE_SYSTEM_DIR}"
 #cmakedefine CLANG_CONFIG_FILE_USER_DIR "${CLANG_CONFIG_FILE_USER_DIR}"
-#cmakedefine KITSUNE_CONFIG_FILE_USER_DIR "${KITSUNE_CONFIG_FILE_DIR}"
 
 /* Default <path> to all compiler invocations for --sysroot=<path>. */
 #define DEFAULT_SYSROOT "${DEFAULT_SYSROOT}"
@@ -93,28 +92,9 @@
 /* Spawn a new process clang.exe for the CC1 tool invocation, when necessary */
 #cmakedefine01 CLANG_SPAWN_CC1
 
-/* ===== kitsune-centric settings  */
-#cmakedefine01 KITSUNE_ENABLE_KOKKOS
-#define KITSUNE_KOKKOS_INCLUDE_DIR       "${Kokkos_INCLUDE_DIR}"
-#define KITSUNE_KOKKOS_LIBRARY_DIR       "${Kokkos_LIBRARY_DIR}"
-#define KITSUNE_KOKKOS_LINK_LIBS         "${Kokkos_LINK_LIBS}"
-
-#cmakedefine01 KITSUNE_ENABLE_QTHREADS
-#define KITSUNE_QTHREADS_INCLUDE_DIR     "${Qthreads_INCLUDE_DIR}"
-#define KITSUNE_QTHREADS_LIBRARY_DIR     "${Qthreads_LIBRARY_DIR}"
-#define KITSUNE_QTHREADS_LINK_LIBS       "${Qthreads_LINK_LIBS}"
-
-#cmakedefine01 KITSUNE_ENABLE_REALM
-#define KITSUNE_REALM_LIBRARY_DIR          "${Realm_LIBRARY_DIR}"
-#define KITSUNE_REALM_WRAPPER_LIBRARY_DIR  "${Realm_WRAPPER_LIBRARY_DIR}"
-#define KITSUNE_REALM_LINK_LIBS            "${Realm_LINK_LIBS}"
-
-#cmakedefine01 KITSUNE_ENABLE_OPENMP
-#define KITSUNE_OPENMP_LIBRARY_DIR        "${OPENMP_LIBRARY_DIR}"
-#define KITSUNE_OPENMP_LINK_LIBS          "${OPENMP_LINK_LIBS}"
-
-#cmakedefine01 KITSUNE_ENABLE_CUDA
-#define KITSUNE_CUDA_LIBRARY_DIR         "${CUDA_LIBRARY_DIR}"
-#define KITSUNE_CUDA_LINK_LIBS           "${CUDA_LINK_LIBS}"
+#cmakedefine01 CLANG_ENABLE_KITSUNE 
+#if defined(CLANG_ENABLE_KITSUNE)
+#include "kitsune.h"
+#endif
 
 #endif

@@ -121,7 +121,7 @@ set(files
   xsaveoptintrin.h
   xsavesintrin.h
   xtestintrin.h
-  kitsune.h
+  kitsune_rt.h
   )
 
 set(cuda_wrapper_files
@@ -175,11 +175,12 @@ endfunction(clang_generate_header)
 
 
 # Copy header files from the source directory to the build directory
-foreach( f ${files} ${cuda_wrapper_files} ${ppc_wrapper_files} ${openmp_wrapper_files} ${cilk_header_files})
+foreach( f ${files} ${cuda_wrapper_files} ${ppc_wrapper_files} ${openmp_wrapper_files})
   copy_header_to_output_dir(${CMAKE_CURRENT_SOURCE_DIR} ${f})
 endforeach( f )
 
 # Generate header files and copy them to the build directory
+
 # Generate arm_neon.h
 clang_generate_header(-gen-arm-neon arm_neon.td arm_neon.h)
 # Generate arm_fp16.h
@@ -193,6 +194,9 @@ set_target_properties(clang-resource-headers PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${output_dir}")
 
 set(header_install_dir lib${LLVM_LIBDIR_SUFFIX}/clang/${CLANG_VERSION}/include)
+
+configure_file(kitsune.h.cmake
+  ${LLVM_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}/clang/${CLANG_VERSION}/include/kitsune.h)
 
 install(
   FILES ${files} ${generated_files}

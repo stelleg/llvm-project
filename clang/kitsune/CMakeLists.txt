@@ -39,26 +39,42 @@ endif()
 # within Clang.
 #
 
+# The none target (-ftapir=none) is always enabled, just provide a 
+# config filename and process the default .cfg.in file so it lands in 
+# the build/install. 
+set(TAPIR_NONE_TARGET_CFG_FILENAME "none.cfg"
+    CACHE STRING "Default serial runtime ABI target Clang .cfg filename.")
+configure_file(${CLANG_SOURCE_DIR}/kitsune/none.cfg.in
+    ${LLVM_BINARY_DIR}/share/kitsune/${KITSUNE_NONE_TARGET_CFG_FILENAME})
+
+# The serial target (-ftapir=serial) is always enabled, just provide a 
+# config filename and process the default .cfg.in file so it lands in 
+# the build/install. 
+set(TAPIR_SERIAL_TARGET_CFG_FILENAME "serial.cfg"
+    CACHE STRING "Default serial runtime ABI target Clang .cfg filename.")
+configure_file(${CLANG_SOURCE_DIR}/kitsune/serial.cfg.in
+    ${LLVM_BINARY_DIR}/share/kitsune/${TAPIR_SERIAL_TARGET_CFG_FILENAME})
+
 # OpenCilk is always enabled.
 set(KITSUNE_OPENCILK_TARGET_ENABLED ON CACHE BOOL "The OpenCilk runtime is always enabled -- this is a doppelganger for use in macros...")
 if (NOT KITSUNE_OPENCILK_TARGET_ENABLED)
   message(WARNING "The OpenCilk runtime is always enabled, resetting it to ON.")
   set(KITSUNE_OPENCILK_TARGET_ENABLED ON BOOL FORCE)
 endif()
-set(KITSUNE_OPENCILK_TARGET_CFG_FILENAME "opencilk.cfg"
+set(TAPIR_OPENCILK_TARGET_CFG_FILENAME "opencilk.cfg"
     CACHE STRING "Default OpenCilk runtime ABI target Clang .cfg filename.")
 set(KITSUNE_OPENCILK_TARGET_EXTRA_LINK_FLAGS
     ""
     CACHE 
     STRING "Additional link flags needed for the OpenCilk runtime ABI target.")
 # Note that link libraries are hard-coded into Clang source for OpenCilk support.
-configure_file(${CLANG_SOURCE_DIR}/kitsune/${KITSUNE_OPENCILK_TARGET_CFG_FILENAME}.in
-    ${LLVM_BINARY_DIR}/share/kitsune/${KITSUNE_OPENCILK_TARGET_CFG_FILENAME})
+configure_file(${CLANG_SOURCE_DIR}/kitsune/opencilk.cfg.in
+    ${LLVM_BINARY_DIR}/share/kitsune/${TAPIR_OPENCILK_TARGET_CFG_FILENAME})
 
 option(KITSUNE_ENABLE_OPENMP_TARGET
     "Enable the Kitsune+Tapir OpenMP runtime codegen target." OFF)
 if (KITSUNE_ENABLE_OPENMP_TARGET)
-  set(KITSUNE_OPENMP_TARGET_CFG_FILENAME
+  set(TAPIR_OPENMP_TARGET_CFG_FILENAME
       "openmp.cfg"
       CACHE 
       STRING "Default OpenMP runtime ABI target Clang .cfg filename.")
@@ -71,14 +87,14 @@ if (KITSUNE_ENABLE_OPENMP_TARGET)
       CACHE 
       STRING "Link library flags (-L, -lxxx) for the OpenMP runtime ABI target.")
   #
-  configure_file(${CLANG_SOURCE_DIR}/kitsune/${KITSUNE_OPENMP_TARGET_CFG_FILENAME}.in
-      ${LLVM_BINARY_DIR}/share/kitsune/${KITSUNE_OPENMP_TARGET_CFG_FILENAME})
+  configure_file(${CLANG_SOURCE_DIR}/kitsune/openmp.cfg.in
+      ${LLVM_BINARY_DIR}/share/kitsune/${TAPIR_OPENMP_TARGET_CFG_FILENAME})
 endif()
 
 option(KITSUNE_ENABLE_QTHREADS_TARGET
     "Enable the Kitsune+Tapir Qthreads runtime codegen target." OFF)
 if (KITSUNE_ENABLE_QTHREADS_TARGET)
-  set(KITSUNE_QTHREADS_TARGET_CFG_FILENAME
+  set(TAPIR_QTHREADS_TARGET_CFG_FILENAME
       "qthreads.cfg"
       CACHE 
       STRING "Default Qthreads runtime ABI target Clang .cfg filename.")
@@ -91,14 +107,14 @@ if (KITSUNE_ENABLE_QTHREADS_TARGET)
       CACHE 
       STRING "Link library flags (-L, -lxxx) needed for the Qthreads runtime ABI target.")
   #
-  configure_file(${CLANG_SOURCE_DIR}/kitsune/${KITSUNE_QTHREADS_TARGET_CFG_FILENAME}.in
-      ${LLVM_BINARY_DIR}/share/kitsune/${KITSUNE_QTHREADS_TARGET_CFG_FILENAME})
+  configure_file(${CLANG_SOURCE_DIR}/kitsune/qthreads.cfg.in
+      ${LLVM_BINARY_DIR}/share/kitsune/${TAPIR_QTHREADS_TARGET_CFG_FILENAME})
 endif()
 
 option(KITSUNE_ENABLE_REALM_TARGET
     "Enable the Kitsune+Tapir Realm runtime codegen target." OFF)
 if (KITSUNE_ENABLE_REALM_TARGET)
-  set(KITSUNE_REALM_TARGET_CFG_FILENAME
+  set(TAPIR_REALM_TARGET_CFG_FILENAME
       "realm.cfg"
       CACHE 
       STRING "Default Realm runtime ABI target Clang .cfg filename.")
@@ -111,7 +127,7 @@ if (KITSUNE_ENABLE_REALM_TARGET)
       CACHE 
       STRING "Link library flags (-L, -lxx) needed for the Realm runtime ABI target.")
   #
-  configure_file(${CLANG_SOURCE_DIR}/kitsune/${KITSUNE_REALM_TARGET_CFG_FILENAME}.in
+  configure_file(${CLANG_SOURCE_DIR}/kitsune/realm.cfg.in
       ${LLVM_BINARY_DIR}/share/kitsune/${KITSUNE_REALM_TARGET_CFG_FILENAME})
 endif()
 
@@ -119,7 +135,7 @@ option(KITSUNE_ENABLE_CUDATK_TARGET
     "Enable the Kitsune+Tapir CUDA Toolkit target and codegen library." OFF)
 if (KITSUNE_ENABLE_CUDATK_TARGET)
   find_package(CUDAToolkit 10...11 REQUIRED)  # We may need to be a bit more specifc on minor versions here.
-  set(KITSUNE_CUDATK_TARGET_CFG_FILENAME
+  set(TAPIR_CUDATK_TARGET_CFG_FILENAME
       "cudatk.cfg"
       CACHE 
       STRING "Default CUDA Toolkit runtime ABI target Clang .cfg filename.")
@@ -132,15 +148,15 @@ if (KITSUNE_ENABLE_CUDATK_TARGET)
       CACHE 
       STRING "Link library flags (-L, -lxxx) needed for the CUDA Toolkit runtime ABI target.")
   #
-  configure_file(${CLANG_SOURCE_DIR}/kitsune/${KITSUNE_CUDATK_TARGET_CFG_FILENAME}.in
-      ${LLVM_BINARY_DIR}/share/kitsune/${KITSUNE_CUDATK_TARGET_CFG_FILENAME})
+  configure_file(${CLANG_SOURCE_DIR}/kitsune/cudatk.cfg.in
+      ${LLVM_BINARY_DIR}/share/kitsune/${TAPIR_CUDATK_TARGET_CFG_FILENAME})
 endif()
 
 # TODO: This needs to be connected to reality... --PM
 option(KITSUNE_ENABLE_HIP_TARGET
     "Enable the Kitsune+Tapir HIP target and codegen library." OFF)
 if (KITSUNE_ENABLE_HIP_TARGET)
-  set(KITSUNE_HIP_TARGET_CFG_FILENAME
+  set(TAPIR_HIP_TARGET_CFG_FILENAME
       "hip.cfg"
       CACHE 
       STRING "Default HIP runtime ABI target Clang .cfg filename.")
@@ -152,8 +168,8 @@ if (KITSUNE_ENABLE_HIP_TARGET)
       "-L${-lhip" # I made this up... --PM
       CACHE STRING "Link library flags (-L, -lxxx) needed for the for the HIP runtime ABI target.")
   #
-  configure_file(${CLANG_SOURCE_DIR}/kitsune/${KITSUNE_HIP_TARGET_CFG_FILENAME}.in
-      ${LLVM_BINARY_DIR}/share/kitsune/${KITSUNE_HIP_TARGET_CFG_FILENAME})
+  configure_file(${CLANG_SOURCE_DIR}/kitsune/hip.cfg.in
+      ${LLVM_BINARY_DIR}/share/kitsune/${TAPIR_HIP_TARGET_CFG_FILENAME})
 endif()
 
 # TODO: This needs to be connected to reality... --PM
@@ -171,7 +187,7 @@ if (KITSUNE_ENABLE_OPENCL_TARGET)
       "-lopencl" # I made this up... --PM
       CACHE STRING "Additional link flags needed for OpenCL runtime ABI target.")
   #
-  configure_file(${CLANG_SOURCE_DIR}/kitsune/${KITSUNE_OPENCL_TARGET_CFG_FILENAME}.in
+  configure_file(${CLANG_SOURCE_DIR}/kitsune/opencl.cfg.in
       ${LLVM_BINARY_DIR}/share/kitsune/${KITSUNE_OPENCL_TARGET_CFG_FILENAME})
 endif()
 

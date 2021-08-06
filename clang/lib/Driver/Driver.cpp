@@ -156,47 +156,53 @@ Driver::Driver(StringRef ClangExecutable, StringRef TargetTriple,
 
 #if defined(KITSUNE_KOKKOS_CFG_FILENAME)
   KitsuneKokkosCfgFile = KITSUNE_KOKKOS_CFG_FILENAME;
-#else 
+#else
   KitsuneKokkosCfgFile = "kokkos.cfg";
+#endif
+
+#if defined(TAPIR_NONE_TARGET_CFG_FILENAME)
+  TapirNoneCfgFile = TAPIR_NONE_TARGET_CFG_FILENAME;
+#else
+  TapirNoneCfgFile = "none.cfg";
 #endif
 #if defined(TAPIR_SERIAL_TARGET_CFG_FILENAME)
   TapirSerialCfgFile = TAPIR_SERIAL_TARGET_CFG_FILENAME;
-#else 
+#else
   TapirSerialCfgFile = "serial.cfg";
 #endif
 #if defined(TAPIR_OPENCILK_TARGET_CFG_FILENAME)
   TapirOpenCilkCfgFile = TAPIR_OPENCILK_TARGET_CFG_FILENAME;
-#else 
+#else
   TapirOpenCilkCfgFile = "opencilk.cfg";
 #endif
 #if defined(TAPIR_CUDA_TARGET_CFG_FILENAME)
   TapirCudaCfgFile = TAPIR_CUDA_TARGET_CFG_FILENAME;
-#else 
+#else
   TapirCudaCfgFile = "cuda.cfg";
 #endif
 #if defined(TAPIR_REALM_TARGET_CFG_FILENAME)
   TapirRealmCfgFile = TAPIR_REALM_TARGET_CFG_FILENAME;
-#else 
+#else
   TapirRealmCfgFile = "realm.cfg";
 #endif
 #if defined(TAPIR_OPENMP_TARGET_CFG_FILENAME)
   TapirOpenMPCfgFile = TAPIR_OPENMP_TARGET_CFG_FILENAME;
-#else 
+#else
   TapirOpenMPCfgFile = "openmp.cfg";
 #endif
 #if defined(TAPIR_QTHREADS_TARGET_CFG_FILENAME)
   TapirQthreadsCfgFile = TAPIR_QTHREADS_TARGET_CFG_FILENAME;
-#else 
+#else
   TapirQthreadsCfgFile = "qthreads.cfg";
 #endif
 #if defined(TAPIR_OPENCL_TARGET_CFG_FILENAME)
   TapirOpenCLCfgFile = TAPIR_OPENCL_TARGET_CFG_FILENAME;
-#else 
+#else
   TapirOpenCLCfgFile = "opencl.cfg";
 #endif
 #if defined(TAPIR_HIP_TARGET_CFG_FILENAME)
   TapirHIPCfgFile = TAPIR_HIP_TARGET_CFG_FILENAME;
-#else 
+#else
   TapirHIPCfgFile = "hip.cfg";
 #endif
 
@@ -931,10 +937,10 @@ bool Driver::loadConfigFile() {
     if (searchForFile(KokkosCfgFilePath, CfgFileSearchDirs,
                       KitsuneKokkosCfgFile)) {
       if (readConfigFile(KokkosCfgFilePath))
-        Diag(diag::err_drv_cannot_read_kitsune_cfg_file) 
+        Diag(diag::err_drv_cannot_read_kitsune_cfg_file)
            << KokkosCfgFilePath << "-fkokkos";
     } else {
-      Diag(diag::warn_drv_missing_cfg_file) 
+      Diag(diag::warn_drv_missing_cfg_file)
         << KitsuneKokkosCfgFile
         << "-fkokkos";
       for (const std::string &SearchDir : CfgFileSearchDirs)
@@ -942,12 +948,13 @@ bool Driver::loadConfigFile() {
           Diag(diag::note_drv_config_file_searched_in) << SearchDir;
     }
   }
-  
+
   // tapir: check for a tapir target specific configuration file.
   if (CLOptions->hasArg(options::OPT_ftapir_EQ)) {
     if (const Arg *A = CLOptions->getLastArg(options::OPT_ftapir_EQ)) {
       std::string TapirTargetCfgFileName;
       TapirTargetCfgFileName = llvm::StringSwitch<std::string>(A->getValue())
+        .Case("none", TapirNoneCfgFile)
         .Case("serial", TapirSerialCfgFile)
         // NOTE: OpenCilk has internal flags automatically set
         // .Case("opencilk", TapirOpenCilkCfgFile)
@@ -961,7 +968,7 @@ bool Driver::loadConfigFile() {
         .Default("");
       if (TapirTargetCfgFileName.length() != 0) {
         llvm::SmallString<128> TapirTargetCfgFilePath;
-        if (searchForFile(TapirTargetCfgFilePath, CfgFileSearchDirs, 
+        if (searchForFile(TapirTargetCfgFilePath, CfgFileSearchDirs,
                 TapirTargetCfgFileName)) {
           if (readConfigFile(TapirTargetCfgFilePath)) {
             Diag(diag::err_drv_cannot_read_kitsune_cfg_file)

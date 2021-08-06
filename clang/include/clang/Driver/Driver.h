@@ -143,6 +143,7 @@ public:
   /// Kitsune directory for config files.
   std::string KitsuneConfigDir;
   std::string KitsuneKokkosCfgFile;
+  std::string TapirNoneCfgFile;
   std::string TapirSerialCfgFile;
   std::string TapirOpenCilkCfgFile;
   std::string TapirCudaCfgFile;
@@ -588,10 +589,10 @@ private:
 
   /// Tries to load options from configuration file.
   ///
-  /// \p DefaultMode (true) enables the driver's default mode 
-  /// for processing configuration files.  If set to false, extra 
-  /// steps will be taken to load a kitsune+tapir set of default 
-  /// configuration files (for kokkos, runtime targets, etc.). 
+  /// \p DefaultMode (true) enables the driver's default mode
+  /// for processing configuration files.  If set to false, extra
+  /// steps will be taken to load a kitsune+tapir set of default
+  /// configuration files (for kokkos, runtime targets, etc.).
   ///
   /// \returns true if error occurred.
   bool loadConfigFile();

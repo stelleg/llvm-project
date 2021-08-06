@@ -7,39 +7,77 @@
 # the LLVM license.
 #
 
-# Note: Since we borrow LLVM functionality here we
-# need to use LLVM_OPTIONAL_SOURCES here to avoid
-# a error from the LLVM cmake infrastructure...
-# FIXME: This is annoying...
-set(LLVM_OPTIONAL_SOURCES
+# A small collection of forall examples. 
+#
+# Note: Internal builds of these examples are not necessarily 
+# geared for benchmarking and performance comparisons as they
+# currently inherit build flags from the larger llvm 
+# configuration. 
+
+project(ForAllExamples C CXX)
+
+set(_ld_library_path "")
+set(_llvm_version "${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}")
+message(STATUS "ForAll examples: LLVM version: ${_llvm_version}")
+message(STATUS "   LLVM target triple: ${LLVM_DEFAULT_TARGET_TRIPLE}")
+
+# TODO: Not sure this (always) works.  
+if (DEFINED ENV{LD_LIBRARY_PATH})
+  set(_ld_library_path $ENV{LD_LIBRARY_PATH})
+  string(PREPEND _ld_library_path ":")
+endif()
+string(PREPEND _ld_library_path 
+       ${LLVM_BINARY_DIR}/lib/clang/${_llvm_version}/lib/${LLVM_DEFAULT_TARGET_TRIPLE})
+set(ENV{LD_LIBRARY_PATH} ${_ld_library_path})
+message(SETTING "automatically adding to LD_LIBRARY_PATH: ${_ld_library_path}.")
+unset(_ld_library_path)
+unset(_llvm_version)
+
+set(_example_srcs
   vecadd.cpp
-  std_vecadd.cpp
-)
+  std_vecadd.cpp)
 
-get_kitsune_tapir_rt_flags(tapir_args)
+# Build a version of the examples for each runtime target that has 
+# been enabled. We can get a list of all the support runtime targets
+# in a format that is compatible for use with -ftapir=target. 
+get_tapir_rt_targets(_tapir_rt_targets)
 
-foreach(src_file IN ITEMS ${LLVM_OPTIONAL_SOURCES})
-  message(STATUS "  forall example: ${src_file}")
-  get_filename_component(base ${src_file} NAME_WLE)
-  string(TOLOWER ${base} ${src_file})
-  # Add a kitsune-centric executable per enabled runtime.
-  foreach(rt IN ITEMS ${tapir_args})
-    message(STATUS "     runtime target: ${rt}")
-    set(target_name forall-${base}-${rt})
+# Manually add the serial target to our testing scope... 
+list(APPEND _tapir_rt_targets "serial") 
 
-    if (${rt} EQUAL "realm")
-      add_kitsune_example(${target_name} ${src_file}
-      DEPENDS kitsunerealm)
-    else()
-      add_kitsune_example(${target_name} ${src_file})
-    endif()
-
-    set_target_properties(${target_name}
+message(STATUS "  enabled runtime targets: ${_tapir_rt_targets}")
+foreach(rt IN ITEMS ${_tapir_rt_targets})
+  foreach(src_file IN ITEMS ${_example_srcs})
+    get_filename_component(exec_name ${src_file} NAME_WLE)
+    set(exec_name "forall.${exec_name}.${rt}")
+    message(STATUS "  ${src_file} --> ${exec_name}")
+    add_executable(${exec_name} ${src_file})
+    target_include_directories(${exec_name} 
+      BEFORE 
+      PRIVATE
+      ${KITSUNE_INCLUDE_DIR})
+    target_compile_options(${exec_name} 
+      PRIVATE
+      -v
+      -ftapir=${rt}
+      --config ${LLVM_BINARY_DIR}/share/kitsune/${rt}.cfg)
+    target_link_options(${exec_name} 
+      PRIVATE 
+      -ftapir=${rt}
+      --config ${LLVM_BINARY_DIR}/share/kitsune/${rt}.cfg)
+    # TODO: for runtimes build within the toolchain components we
+    # really need to add a set of libraries per runtime. Ideally 
+    # the configure files will pick this up but it seems to still 
+    # be a bit brittle. 
+    target_link_libraries(${exec_name})
+    set_target_properties(${exec_name}
       PROPERTIES
-      COMPILE_FLAGS "-ftapir=${rt} -Rpass-analysis=loop-spawning-ti"
-      LINK_FLAGS "-ftapir=${rt}"
-      )
-    install(TARGETS ${target_name} RUNTIME DESTINATION ${LLVM_BINARY_DIR}/kitsune/examples/forall)
+      RUNTIME_OUTPUT_DIRECTORY  ${LLVM_BINARY_DIR}/examples/kitsune)
+    #  
+    install(TARGETS ${exec_name}
+      DESTINATION ${CMAKE_INSTALL_PREFIX}/kitsune/examples/)
   endforeach()
-
 endforeach()
+# Do some clean up... 
+unset(_example_srcs)
+unset(_tapir_rt_targets)

@@ -92,6 +92,7 @@ using namespace clang::driver;
 using namespace clang;
 using namespace llvm::opt;
 
+#define DEBUG_TYPE "clang-driver"
 
 // static
 std::string Driver::GetResourcesPath(StringRef BinaryPath,

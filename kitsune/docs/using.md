@@ -14,23 +14,23 @@ First, Kitsune provides a set of extensions to Clang that support the front-end 
 
      * ``Kokkos::parallel_reduce`` support is currently under development. **(TODO: This needs to be updated when reductions are completed.)**
 
-**(TODO: Document other language-level constructs -- e.g., ``spawn``, ``sync``.)**
+*(TODO: Document other language-level constructs -- e.g., ``spawn``, ``sync``.)*
 
 The second component of the compilation stage is Tapir that is implemented as a series of extensions to LLVM.  Tapir is responsible for taking the parallel representations of code provided by Kitsune and (1) optimizing them and (2) taking the optimized code and transforming it into a parallel for for a specific architecture and corresponding runtime ABI target.  The architecture target for the code is primarily defined by the runtime target.  For example: 
 
   * `-ftapir=serial`: will transform the parallel intermediate form used by Tapir into a serial CPU code. 
   * `-ftapir=opencilk`: will transform the parallel intermediate form used by Tapir into a CPU executable that leverages the OpenCilk runtime system for parallelism. 
   * `-ftapir=openmp`: will transform the parallel intermediate form used by Tapir into a CPU executable that leverages the OpenMP runtime system (even if the input source program is not using OpenMP).
-  * `-ftapir=cudatk`: will transform the parallel intermediate form used by Tapir into a runtime target for supporting CUDA and NVIDIA's GPU architectures. `cudatk` is shorthand for a CUDA Toolkit runtime that is part of the Kitsune code base and simplifies some of the details of code generation for CUDA. **(TODO: This transform is still under development and should not be considered robust.)
+  * `-ftapir=cudatk`: will transform the parallel intermediate form used by Tapir into a runtime target for supporting CUDA and NVIDIA's GPU architectures. `cudatk` is shorthand for a CUDA Toolkit runtime that is part of the Kitsune code base and simplifies some of the details of code generation for CUDA. *(TODO: This transform is still under development and should not be considered robust.)*
   * `-ftapir=hip`: will transform the parallel intermediate form used by Tapir into a runtime target for supporting HIP and AMD's GPU architectures.  Like the CUDA target above, there is a HIP-specific runtime library that is packaged with Kitsune that simplifies some aspects of code generation for the AMD software stack and GPU hardware. 
   * `-ftapir=realm`: will transform the parallel intermediate form used by Tapir into a runtime target that supports the Realm runtime system that is used the low-level runtime system used by the Legion Programming System. 
   * `-ftapir=qthreads`: will transform the parallel intermediate form used by Tapir into a runtime target that supports CPU execution using the Qthreads runtime system. 
 
-  **(TODO: Flush out the details for other, lower priority, targets -- e.g. OpenCL.)** 
+  *(TODO: Flush out the details for other, lower priority, targets -- e.g. OpenCL.)* 
 
 Based on the selected runtime and architecture target, the result executable each have their own unique aspects for supporting parallel execution parameters.  Many are controlled by enviornment variables and are dependent upon the runtime system.  A quick overview of some of these parameters are quickly discussed below. 
 
-**OpenCilk Runtime Target**: The OpenCilk runtime target supports one primary environment variable that controls the number of worker threads that will be used to execute supported language constructs (e.g., `forall`).  This environment variable is `CILK_NWORKERS`.  In addition, the compilation step requires a bitcode file for the runtime interface that is currently searched for via the LD_LIBRARY_PATH environment variable.  The bitcode file is installed into ``INSTALL_PREFIX/lib/clang/VERSION/lib/TARGET_TRIPLE`` and is also within the LLVM binary (build) directory if you are using/developing with an *in-tree* build.
+**OpenCilk Runtime Target**: The OpenCilk runtime target supports one primary environment variable that controls the number of worker threads that will be used to execute supported language constructs (e.g., `forall`).  This environment variable is `CILK_NWORKERS`.  In addition, the compilation step requires a bitcode file for the runtime interface that is currently searched for via the LD_LIBRARY_PATH environment variable.  The bitcode file is installed into ``INSTALL_PREFIX/lib/clang/VERSION/lib/TARGET_TRIPLE`` (see example below) and is also within the LLVM binary/build directory if you are working with an *in-tree* build.
 ```bash
 $ export LD_LIBRARY_PATH=/usr/local/kitsune/lib/clang/10.0.1/lib/x86_64-unknown-linux-gnu:$LD_LIBRARY_PATH
 $ clang++ -ftapir=opencilk ... my_program.cpp 
@@ -59,4 +59,42 @@ $ a.out
 
 **AMD HIP Target**: Still under development and testing... 
 
-**(TODO: Flush out the details for other, lower priority, targets -- e.g. OpenCL.)** 
+*(TODO: Flush out the details for other, lower priority, targets -- e.g. OpenCL.)*
+
+##Compile Options via Configure Files
+
+Unlike previous versions of the toolchain, it is now possible to provide a set of customized configuration files for controlling the various command line arguments used by the compiler for each of the different transformation/ABI targets.  This path avoids the need to hard-code flags and details into the ``clang`` executable.  
+
+There are three search locations the compiler will use to try and locate these files, with the first file found taking precedence over others.  These locations are directories and in priority order are:
+
+  * A user-specific location that is typically stored within their home directory (e.g., ``~/.kitsune-tapir``). 
+  * A kitsune-specific location that is typically rolled into the installation as a set of defaults based on configuration and build settings.  These files are normally placed within the LLVM installation under the directory ``share/kitsune/``.
+  * Finally, a toolchain-wide location that is specific to clang. 
+
+Each of these locations may be specifically set via CMake when building the toolchain from source. The named variables are:
+
+  * ``CLANG_CONFIG_FILE_USER_DIR``
+  * ``CLANG_CONFIG_FILE_KITSUNE_DIR``
+  * ``CLANG_CONFIG_SYSTEM_DIR``
+
+A configuration file using a text format, with options provided exactly as they would be on the command line.  The only other legal syntax within the file are single-line comments that start with a ``#``.  For example: 
+
+```
+# Example kitsune+tapir config file. 
+-I/projects/kitsune/include -v 
+# 
+-L/projects/kitsune/lib -lmylibrary 
+``` 
+
+Each special mode and runtime transformation/ABI target has its own named configuration file that is specifically searched for at compilation time:
+
+  * ``kokkos.cfg``: Kokkos specific flags to use when ``-fkokkos`` is enabled. 
+  * ``opencilk.cfg``: OpenCilk/Cheetah ABI target specific flags. 
+  * ``openmp.cfg``: OpenMP runtime ABI target specific flags. 
+  * ``qthreads.cfg``: Qthreads runtime ABI target specific flags. 
+  * ``realm.cfg``: Realm runtime ABI target specific flags. 
+  * ``cudatk.cfg``: Cuda Toolkit runtime ABI target specific flags. 
+  * ``hip.cfg``: HIP runtime ABI target specific flags. 
+  * ``opencl.cfg``: OpenCL runtime ABI target specific flags. 
+
+These files can reduce complexity for end users by providing configuration- and build-specific flags.  This can be important when version-specific bitcode files and other details are used.  In addition, these files can provide developers additional flexibility for debugging, testing, and experimenting.  Obviously, all these features can also be hardcoded onto the command line for a more traditional use case.  In addition, to override any of the Kitsune or system configuration files you can place an empty config file within the user directory (no kitsune or system configuration files will be read in this case). 

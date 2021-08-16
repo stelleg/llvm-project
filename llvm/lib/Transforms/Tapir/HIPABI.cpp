@@ -32,6 +32,9 @@
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Utils/TapirUtils.h"
 #include "llvm/Transforms/Vectorize.h"
+#include "llvm/IR/IntrinsicsAMDGPU.h"
+
+#include <iostream>
 
 using namespace llvm;
 
@@ -42,6 +45,10 @@ const unsigned ThreadsPerBlock = 1024;
 static cl::opt<bool>
 Verbose("tapir-hip-verbose", cl::init(false),
         cl::desc("Verbose output for Tapir-HIP backend"));
+
+static cl::opt<std::string>
+Device("tapir-hip-device", cl::init("gfx906"),
+        cl::desc("Device for for Tapir-HIP backend"));
 
 void AMDGCNLoop::EmitAMDGCN() {
   legacy::PassManager PM;
@@ -56,6 +63,18 @@ void AMDGCNLoop::EmitAMDGCN() {
 	Builder.populateModulePassManager(PM); 
   Builder.populateFunctionPassManager(FPM);
 
+	// Ugh, this sucks. Have to use command line utilities and temporary files
+	// despite the code existing in the same repository. Might be worth looking 
+	// into how to do this in memory, though I'm not sure about linking.
+	std::string ObjectFile = M.getSourceFileName() + ".hip.o";
+	std::string LinkedObjectFile = M.getSourceFileName() + ".hip-l.o";
+	std::string BundledObjectFile = M.getSourceFileName() + ".hip-b.o"; 
+  std::error_code EC;
+  sys::fs::OpenFlags OpenFlags = sys::fs::F_None;
+  std::unique_ptr<ToolOutputFile> FDOut =
+      std::make_unique<ToolOutputFile>(ObjectFile, EC, OpenFlags);
+  raw_pwrite_stream *fostr = &FDOut->os();
+
   SmallVector<char, 65536> buf; 
   raw_svector_ostream ostr(buf); 
 
@@ -63,18 +82,71 @@ void AMDGCNLoop::EmitAMDGCN() {
   for (Function &F : AMDGCNM)
     FPM.run(F);
   FPM.doFinalization();
-  PM.add(createVerifierPass());
-  //PM.run(AMDGCNM);
+  //PM.add(createVerifierPass());
   bool Fail = AMDGCNTargetMachine->addPassesToEmitFile(
-      PM, ostr, nullptr,
+      PM, *fostr, nullptr,
       CodeGenFileType::CGFT_ObjectFile, false);
   assert(!Fail && "Failed to emit AMDGCN");
   // Add function optimization passes.
-
+  PM.run(AMDGCNM);
+	FDOut->keep(); 
 	LLVM_DEBUG(dbgs() << "AMDGCN Module after optimizations, before writing to buffer" << AMDGCNM); 
 
-  std::string hsaco = ostr.str().str(); 
-  Constant* cda = ConstantDataArray::getString(M.getContext(), hsaco); 
+  std::string clangOffloadBundle  = *sys::findProgramByName("clang-offload-bundler");
+	std::string lld = *sys::findProgramByName("ld.lld");
+
+  opt::ArgStringList offloadBundleArgList, lldArgList;	
+  std::string cpus = "-plugin-opt=mcpu=" + Device;
+	std::string lofs = "-o " + LinkedObjectFile;
+	lldArgList.push_back(lld.c_str()); 
+	lldArgList.push_back("-shared");	
+	lldArgList.push_back(cpus.c_str());	
+	lldArgList.push_back("-plugin-opt=-amdgpu-internalize-symbols");	
+  lldArgList.push_back("-plugin-opt=O3");	
+  lldArgList.push_back("-plugin-opt=-amdgpu-early-inline-all=true");	
+	lldArgList.push_back("-plugin-opt=-amdgpu-function-calls=false"); 
+	lldArgList.push_back(lofs.c_str()); 
+	lldArgList.push_back(ObjectFile.c_str()); 
+	lldArgList.push_back(nullptr); 
+
+
+	LLVM_DEBUG({
+		for(auto s : lldArgList){
+			std::cout << s << std:: endl;
+		}
+	});
+	auto lldsra = toStringRefArray(lldArgList.data());
+  sys::ExecuteAndWait(lld, lldsra);
+
+	// Warning: this changes to from hip- to hipv4- in llvm 13
+	std::string targets = "-targets=host-" + 
+		M.getTargetTriple() + "," + 
+		"hip-" + AMDGCNM.getTargetTriple() + "--" + Device; 
+	std::string inputs = "-inputs=/dev/null," + LinkedObjectFile; 
+	std::string bundledFileStr = "--outputs=" + BundledObjectFile; 
+	offloadBundleArgList.push_back(clangOffloadBundle.c_str());
+	offloadBundleArgList.push_back("-type=o"); 
+	offloadBundleArgList.push_back(inputs.c_str()); 
+	offloadBundleArgList.push_back(targets.c_str()); 
+	offloadBundleArgList.push_back(bundledFileStr.c_str());
+	offloadBundleArgList.push_back(nullptr); 
+
+	LLVM_DEBUG({
+		for(auto s : offloadBundleArgList){
+			std::cout << s << std:: endl;
+		}
+	});
+	auto cobsra = toStringRefArray(offloadBundleArgList.data());
+	sys::ExecuteAndWait(clangOffloadBundle, cobsra); 
+	
+  ErrorOr<std::unique_ptr<MemoryBuffer>> BundledBinBuf =
+      MemoryBuffer::getFile(BundledObjectFile);
+  Constant *cda = ConstantDataArray::getString(M.getContext(),
+                                               BundledBinBuf.get()->getBuffer());
+	
+		
+  // std::string hsaco = fostr.str().str(); 
+  //Constant* cda = ConstantDataArray::getString(M.getContext(), hsaco); 
   AMDGCNGlobal = new GlobalVariable(M, cda->getType(), true, GlobalValue::PrivateLinkage, cda, GlobalName);  
 }
 
@@ -153,16 +225,14 @@ AMDGCNLoop::AMDGCNLoop(Module &M)
   assert(AMDGCNTarget && "Failed to find AMDGCN target");
 
   AMDGCNTargetMachine =
-      AMDGCNTarget->createTargetMachine(AMDGCNTriple.getTriple(), "gfx900",
+      AMDGCNTarget->createTargetMachine(AMDGCNTriple.getTriple(), Device,
                                      "", TargetOptions(), Reloc::PIC_,
                                      CodeModel::Small, CodeGenOpt::Aggressive);
   AMDGCNM.setDataLayout(AMDGCNTargetMachine->createDataLayout());
 
   // Insert runtime-function declarations in AMDGCN host modules.
   Type *AMDGCNInt32Ty = Type::getInt32Ty(AMDGCNM.getContext());
-  GetThreadId = AMDGCNM.getOrInsertFunction("hc_get_workitem_id", AMDGCNInt32Ty, AMDGCNInt32Ty); 
-  GetBlockId = AMDGCNM.getOrInsertFunction("hc_get_group_id", AMDGCNInt32Ty, AMDGCNInt32Ty); 
-  GetBlockDim = AMDGCNM.getOrInsertFunction("hc_get_group_size", AMDGCNInt32Ty, AMDGCNInt32Ty); 
+  GetThreadId = Intrinsic::getDeclaration(&AMDGCNM, Intrinsic::amdgcn_workitem_id_x, AMDGCNInt32Ty); 
 }
 
 void AMDGCNLoop::setupLoopOutlineArgs(
@@ -266,13 +336,14 @@ void AMDGCNLoop::postProcessOutline(TapirLoopInfo &TL, TaskOutlineInfo &Out,
   // Get the thread ID for this invocation of Helper.
   LLVMContext &Ctx = AMDGCNM.getContext();
   IRBuilder<> B(Entry->getTerminator());
-  Value *ThreadIdx = B.CreateCall(GetThreadId, ConstantInt::get(Type::getInt32Ty(Ctx), 0));
-  Value *BlockIdx = B.CreateCall(GetBlockId, ConstantInt::get(Type::getInt32Ty(Ctx), 0));
-  Value *BlockDim = B.CreateCall(GetBlockDim, ConstantInt::get(Type::getInt32Ty(Ctx), 0));
+  Value *ThreadID = B.CreateCall(GetThreadId, {});
+  /*Value *BlockIdx = B.CreateCall(GetBlockId, {});
+  Value *BlockDim = B.CreateCall(GetBlockDim, {});
   Value *ThreadID = B.CreateIntCast(
       B.CreateAdd(ThreadIdx, B.CreateMul(BlockIdx, BlockDim), "threadId"),
       PrimaryIV->getType(), false);
-
+	*/
+	ThreadID = B.CreateIntCast(ThreadID, PrimaryIV->getType(), false); 
   ThreadID = B.CreateMul(ThreadID, Grainsize);
   Value *ThreadEnd = B.CreateAdd(ThreadID, Grainsize);
   Value *Cond = B.CreateICmpUGE(ThreadID, End);

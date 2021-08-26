@@ -97,7 +97,7 @@ void AMDGCNLoop::EmitAMDGCN() {
 
   opt::ArgStringList offloadBundleArgList, lldArgList;	
   std::string cpus = "-plugin-opt=mcpu=" + Device;
-	std::string lofs = "-o " + LinkedObjectFile;
+	std::string lofs = "-o" + LinkedObjectFile;
 	lldArgList.push_back(lld.c_str()); 
 	lldArgList.push_back("-shared");	
 	lldArgList.push_back(cpus.c_str());	
@@ -314,6 +314,14 @@ void AMDGCNLoop::postProcessOutline(TapirLoopInfo &TL, TaskOutlineInfo &Out,
 
   // Set the helper function to have external linkage.
   Helper->setLinkage(Function::ExternalLinkage);
+
+	AttrBuilder Attrs;
+	Attrs.addAttribute("target-cpu", Device); 
+		
+	Helper->removeFnAttr("target-cpu");
+	Helper->removeFnAttr("target-features");
+	Helper->addAttributes(AttributeList::FunctionIndex, Attrs); 
+	
 
   // Verify that the Thread ID corresponds to a valid iteration.  Because Tapir
   // loops use canonical induction variables, valid iterations range from 0 to

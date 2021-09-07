@@ -172,7 +172,8 @@ Value *RealmABI::lowerGrainsizeCall(CallInst *GrainsizeCall) {
   Value *Limit = GrainsizeCall->getArgOperand(0);
   IRBuilder<> Builder(GrainsizeCall);
 
-  Value *Workers = Builder.CreateCall(get_realmGetNumProcs());
+  Value *WorkersL = Builder.CreateCall(get_realmGetNumProcs());
+  Value *Workers = Builder.CreateIntCast(WorkersL, Limit->getType(), false); 
   Value *Grainsize = Builder.CreateUDiv(Builder.CreateSub(Builder.CreateAdd(Limit, Workers),
                                          ConstantInt::get(Limit->getType(), 1)),
                        Workers);

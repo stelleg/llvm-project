@@ -23,9 +23,12 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Vectorize.h"
+#include "llvm/Support/SmallVectorMemoryBuffer.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/TargetRegistry.h"
 #include <sstream>
+#include <fstream>
 
 using namespace llvm;
 
@@ -93,7 +96,7 @@ LLVMLoop::LLVMLoop(Module &M)
   Type *Int32Ty = Type::getInt32Ty(M.getContext());
   Type *Int64Ty = Type::getInt64Ty(M.getContext());
   GPUInit = M.getOrInsertFunction("initRuntime", VoidTy);
-  GPULaunchKernel = M.getOrInsertFunction("launchBCKernel", VoidPtrTy, VoidPtrTy, VoidPtrPtrTy, Int64Ty);
+  GPULaunchKernel = M.getOrInsertFunction("launchBCKernel", VoidPtrTy, VoidPtrTy, Int64Ty, VoidPtrPtrTy, Int64Ty);
   GPUWaitKernel = M.getOrInsertFunction("waitKernel", VoidTy, VoidPtrTy);
 }
 
@@ -244,7 +247,7 @@ void LLVMLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
   LLVMContext &Ctx = M.getContext();
   Type *Int8Ty = Type::getInt8Ty(Ctx);
   Type *Int32Ty = Type::getInt32Ty(Ctx);
-  //Type *Int64Ty = Type::getInt64Ty(Ctx);
+  Type *Int64Ty = Type::getInt64Ty(Ctx);
   Type *VoidPtrTy = Type::getInt8PtrTy(Ctx);
 
   //Task *T = TL.getTask();
@@ -259,7 +262,7 @@ void LLVMLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
 
   // Compile the kernel 
   //LLVMM.getFunctionList().remove(TOI.Outline); 
-  TOI.Outline->eraseFromParent(); 
+  //TOI.Outline->eraseFromParent(); 
   LLVMContext &LLVMCtx = LLVMM.getContext();
 
   SmallVector<Metadata *, 3> AV;
@@ -271,7 +274,6 @@ void LLVMLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
 
   legacy::PassManager *PassManager = new legacy::PassManager;
 
-  PassManager->add(createVerifierPass());
 
   // Add in our optimization passes
 
@@ -288,11 +290,12 @@ void LLVMLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
   //PassManager->add(createInstructionCombiningPass());
   PassManager->add(createCFGSimplificationPass());
   PassManager->add(createDeadCodeEliminationPass());
+  PassManager->add(createVerifierPass());
   PassManager->run(LLVMM);
 
   delete PassManager;
 
-  LLVM_DEBUG(dbgs() << "LLVM Module: " << LLVMM);
+  LLVM_DEBUG(dbgs() << "LLVM Module after passes: " << LLVMM);
 
 
   // generate llvm kernel code
@@ -301,7 +304,15 @@ void LLVMLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
   bcw.writeModule(LLVMM); 
   bcw.writeStrtab(); 
 
-  Constant *LLVMBC = ConstantDataArray::getRaw(mbuf.data(), mbuf.size(), Int8Ty);
+  char* heapbuf = new char[mbuf.size()];
+  for(int i=0; i<mbuf.size(); i++) { heapbuf[i] = mbuf[i]; } 
+
+  std::string strbuf(mbuf.data(), mbuf.size()); 
+  std::ofstream out("compile_time.bc"); 
+  out << strbuf;
+  out.close();
+
+  Constant *LLVMBC = ConstantDataArray::getRaw(StringRef(heapbuf, mbuf.size()), mbuf.size(), Int8Ty);
   LLVMGlobal = new GlobalVariable(M, LLVMBC->getType(), true,
                                  GlobalValue::PrivateLinkage, LLVMBC,
                                  "gpu_" + Twine("kitsune_kernel"));
@@ -316,7 +327,7 @@ void LLVMLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
   Value *LLVMPtr = B.CreateBitCast(LLVMGlobal, VoidPtrTy);
   Type *VoidPtrPtrTy = VoidPtrTy->getPointerTo();
 
-  Constant *kernelSize = ConstantInt::get(Int32Ty, 
+  Constant *kernelSize = ConstantInt::get(Int64Ty, 
     LLVMGlobal->getInitializer()->getType()->getArrayNumElements()); 
   BasicBlock &EBB = Parent->getEntryBlock(); 
   IRBuilder<> EB(&EBB.front()); 
@@ -331,7 +342,7 @@ void LLVMLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
     Value *VPtr = B.CreateAlloca(V->getType()); 
     B.CreateStore(V, VPtr); 
     Value *VoidVPtr = B.CreateBitCast(VPtr, VoidPtrTy);
-    Value *argPtr = B.CreateConstInBoundsGEP2_32(arrayType, argArray, 0, i); 
+    Value *argPtr = B.CreateConstInBoundsGEP2_32(arrayType, argArray, 0, i++); 
     B.CreateStore(VoidVPtr, argPtr); 
   }
 
@@ -339,15 +350,16 @@ void LLVMLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
     ConstantInt::get(TripCount->getType(), TL.getGrainsize()) :
     OrderedInputs[2]; 
 
+  //Type *Int64Ty = Type::getInt64Ty(LLVMM.getContext());
   Value *RunSizeQ = B.CreateUDiv(TripCount, Grainsize);
   Value *RunRem = B.CreateURem(TripCount, Grainsize);
   Value *IsRem = B.CreateICmp(ICmpInst::ICMP_UGT, RunRem, ConstantInt::get(RunRem->getType(), 0)); 
   Value *IsRemAdd = B.CreateZExt(IsRem, RunSizeQ->getType()); 
-  Value *RunSize = B.CreateAdd(RunSizeQ, IsRemAdd);  
-  
+  Value *RunSize = B.CreateZExt(B.CreateAdd(RunSizeQ, IsRemAdd), Int64Ty);  
+
   Value* argsPtr = B.CreateConstInBoundsGEP2_32(arrayType, argArray, 0, 0); 
   Value* bcPtr = B.CreateConstInBoundsGEP2_32(LLVMGlobal->getValueType(), LLVMGlobal, 0, 0); 
-  Value* stream = B.CreateCall(GPULaunchKernel, { bcPtr, argsPtr, RunSize });
+  Value* stream = B.CreateCall(GPULaunchKernel, { bcPtr, kernelSize, argsPtr, RunSize });
   B.CreateCall(GPUWaitKernel, stream);
 
   LLVM_DEBUG(dbgs() << "Finished processOutlinedLoopCall: " << M);

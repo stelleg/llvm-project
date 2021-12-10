@@ -1560,7 +1560,7 @@ Loop *llvm::StripMineLoop(Loop *L, unsigned Count, bool AllowExpensiveTripCount,
   // iterate through the stores that should be treated as reductions
   const std::vector<BasicBlock*>& blocks = L->getBlocks(); 
   std::set<Value*> reductions;  
-  for (BasicBlock *BB : blocks)
+  for (BasicBlock *BB : blocks){
     for (Instruction &I : *BB) {
       if(auto si = dyn_cast<StoreInst>(&I)){
         // TODO: better check if the store should be treated as a
@@ -1571,10 +1571,11 @@ Loop *llvm::StripMineLoop(Loop *L, unsigned Count, bool AllowExpensiveTripCount,
           reductions.insert(ptr); 
       }
     }
+  }
 
   ValueToValueMap redMap; 
-  // TODO: Potentially modify the strip mining constant to be smaller:
-  // currently we are stack allocating n/2048 reduction values.
+  // TODO: Modify the strip mining outer loop to be smaller: currently we are
+  // stack allocating n/2048 reduction values.
   // TODO: Initialize local reductions with unit values
   for(Value* ptr : reductions){
     IRBuilder<> B(F->getEntryBlock().getTerminator()); 
@@ -1599,12 +1600,74 @@ Loop *llvm::StripMineLoop(Loop *L, unsigned Count, bool AllowExpensiveTripCount,
     BH.CreateStore(BH.CreateLoad(ptr), lptr);  
   }
   
-  // TODO: Epilog "join" of reduction values stored in local reduction
-  // value arrays. Should be able to use redMap to map original
-  // pointer (which is still used to reduce the remainder of the
-  // strimined loop, so you probably want to start the reduction with
-  // that value).
-  F->dump(); 
-  
+  // Epilog "join" of reduction values stored in local reduction value arrays.
+  // Should be able to use redMap to map original pointer (which is still used
+  // to reduce the remainder of the strimined loop, so you probably want to
+  // start the reduction with that value).
+  LLVM_DEBUG(dbgs() << "Function after strip mining, before reduction epilogue\n" << *F); 
+   
+  // We insert the reduction code at every sync corresponding to the strimined
+  // loop
+  //
+  // Sync 
+  // RedEpiHeader
+  //   RedEpiBody
+  // RedEpiExit
+
+  if(!reductions.empty()){
+    SmallVector<SyncInst*,2> syncs; 
+    for(auto &bb : *F){
+      if(auto *sync = dyn_cast<SyncInst>(bb.getTerminator())){
+        syncs.push_back(sync);
+      }
+    }
+    for(auto *sync : syncs){
+      if(sync->getSyncRegion() == SyncReg){
+        BasicBlock *PostSync = sync->getSuccessor(0);
+        BasicBlock* RedEpiHeader = SplitBlock(PostSync, PostSync->getTerminator(), DT); 
+        PHINode *Idx = PHINode::Create(TripCount->getType(), 2,
+                                       "reductionepilogueidx",
+                                       RedEpiHeader->getFirstNonPHI());
+        IRBuilder<> BH(RedEpiHeader->getFirstNonPHI()); 
+        Idx->addIncoming(TripCount, PostSync);
+        Instruction *bodyTerm, *exitTerm;
+        Value *cmp = BH.CreateIsNotNull(Idx); 
+        SplitBlockAndInsertIfThenElse(cmp, RedEpiHeader->getTerminator(), &bodyTerm, &exitTerm);
+
+        IRBuilder<> BB(bodyTerm); 
+        // For each reduction, get the allocated thread local reduced values and
+        // reduce them. For now defaults to sums on primitive types.
+        // TODO: Add custom unital magmas and/or infer unital magma
+        for(auto& kv : redMap){
+          auto al = kv.second;
+          Value* ptr = const_cast<Value*>(kv.first);  
+          auto lptr = BB.CreateBitCast(
+            BB.CreateGEP(al, Idx), 
+            ptr->getType());                             
+          auto acc = BB.CreateLoad(ptr); 
+          auto x = BB.CreateLoad(lptr); 
+          auto newacc = acc->getType()->isFloatingPointTy() ? BB.CreateFAdd(acc,x) : BB.CreateAdd(acc,x);
+          BB.CreateStore(newacc, ptr); 
+        }
+        Value *IdxSub =
+            BB.CreateSub(Idx, ConstantInt::get(Idx->getType(), 1),
+                              Idx->getName() + ".sub");
+        Idx->addIncoming(IdxSub, bodyTerm->getParent()); 
+        ReplaceInstWithInst(bodyTerm, BranchInst::Create(RedEpiHeader)); 
+      }
+    }
+  }
+
+  LLVM_DEBUG(dbgs() << "Function after reduction epilogue\n" << *F);  
+
+  // TODO: fix DT updates
+  DT->recalculate(*F); 
+  /*
+#ifndef NDEBUG
+  DT->verify();
+  LI->verify(*DT);
+#endif
+  */
+
   return NewLoop;
 }

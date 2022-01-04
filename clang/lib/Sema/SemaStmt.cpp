@@ -3214,7 +3214,7 @@ StmtResult Sema::BuildCXXForallRangeStmt(
       return StmtError();
 
     // Build and check __index <= __index_end expression.
-    NotEqExpr = ActOnBinOp(S, ColonLoc, tok::lessequal, IndexRef.get(),
+    NotEqExpr = ActOnBinOp(S, ColonLoc, tok::exclaimequal, IndexRef.get(),
                            IndexEndRef.get());
     if (!NotEqExpr.isInvalid())
       NotEqExpr = CheckBooleanCondition(ColonLoc, NotEqExpr.get());

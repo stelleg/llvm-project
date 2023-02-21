@@ -8819,6 +8819,9 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_ReducerRegister:
     handleSimpleAttribute<ReducerRegisterAttr>(S, D, AL);
     break;
+  case ParsedAttr::AT_KitsuneReduction:
+    handleSimpleAttribute<KitsuneReductionAttr>(S, D, AL);
+    break;
   case ParsedAttr::AT_HyperView:
     handleSimpleAttribute<HyperViewAttr>(S, D, AL);
     break;

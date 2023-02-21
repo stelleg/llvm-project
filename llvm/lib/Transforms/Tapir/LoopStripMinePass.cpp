@@ -217,7 +217,7 @@ static bool tryToStripMineLoop(
 
   // If the loop contains potentially expensive function calls, then we don't
   // want to stripmine it.
-  if (NumCalls > 0 && !explicitCount && !StripMiningRequested) {
+  if (NumCalls > 10 && !explicitCount && !StripMiningRequested) {
     LLVM_DEBUG(dbgs() << "  Skipping loop with expensive function calls.\n");
     ORE.emit(createMissedAnalysis("ExpensiveCalls", L)
              << "Not stripmining loop with potentially expensive calls.");

@@ -231,6 +231,7 @@ enum Kind {
   kw_readonly,
   kw_reducer_register,
   kw_reducer_unregister,
+  kw_kitsune_reduction,
   kw_returned,
   kw_returns_twice,
   kw_signext,

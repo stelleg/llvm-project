@@ -207,6 +207,7 @@ def HyperView : EnumAttr<"hyper_view", [FnAttr]>;
 def HyperToken : EnumAttr<"hyper_token", [FnAttr]>;
 def ReducerRegister : EnumAttr<"reducer_register", [FnAttr]>;
 def ReducerUnregister : EnumAttr<"reducer_unregister", [FnAttr]>;
+def KitsuneReduction : EnumAttr<"kitsune_reduction", [FnAttr]>;
 
 /// Return value is always equal to this argument.
 def Returned : EnumAttr<"returned", [ParamAttr]>;

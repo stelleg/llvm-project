@@ -717,6 +717,7 @@ lltok::Kind LLLexer::LexIdentifier() {
   KEYWORD(hyper_token);
   KEYWORD(reducer_register);
   KEYWORD(reducer_unregister);
+  KEYWORD(kitsune_reduction); 
 
   KEYWORD(type);
   KEYWORD(opaque);

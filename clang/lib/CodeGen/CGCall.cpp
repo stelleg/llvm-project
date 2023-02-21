@@ -2124,6 +2124,9 @@ void CodeGenModule::ConstructAttributeList(StringRef Name,
     if (TargetDecl->hasAttr<ReducerUnregisterAttr>()) {
       FuncAttrs.addAttribute(llvm::Attribute::ReducerUnregister);
     }
+    if (TargetDecl->hasAttr<KitsuneReductionAttr>()) {
+      FuncAttrs.addAttribute(llvm::Attribute::KitsuneReduction);
+    }
     if (TargetDecl->hasAttr<HyperViewAttr>()) {
       FuncAttrs.addAttribute(llvm::Attribute::HyperView);
     }

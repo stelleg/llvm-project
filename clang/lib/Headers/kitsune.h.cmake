@@ -21,6 +21,13 @@
 
 #include "kitsune_rt.h"
 
+#if defined(reduction)
+#warning found reduction definition: try puttin kitsune lower in include order
+#else
+#define reduction __attribute__((noinline, kitsune_reduction))
+#endif
+
+
 #if defined(KITSUNE_ENABLE_OPENCL_ABI_TARGET)
 #define ocl_mmap(a, n) __kitsune_opencl_mmap_marker((void*)a, n)
 #ifdef __cplusplus

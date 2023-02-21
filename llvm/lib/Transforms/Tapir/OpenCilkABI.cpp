@@ -161,6 +161,7 @@ void OpenCilkABI::prepareModule() {
     } else {
       path = ClOpenCilkRuntimeBCPath.getValue();
     }
+
     LLVM_DEBUG(dbgs() << "Using external bitcode file for OpenCilk ABI: "
                       << path << "\n");
     SMDiagnostic SMD;
@@ -168,7 +169,7 @@ void OpenCilkABI::prepareModule() {
     // Parse the bitcode file.  This call imports structure definitions, but not
     // function definitions.
     if (std::unique_ptr<Module> ExternalModule =
-        parseIRFile(RuntimeBCPath, SMD, C)) {
+        parseIRFile(path.getValue(), SMD, C)) {
       // Get the original DiagnosticHandler for this context.
       std::unique_ptr<DiagnosticHandler> OrigDiagHandler =
           C.getDiagnosticHandler();

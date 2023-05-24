@@ -1962,9 +1962,8 @@ CudaABIOutputFile CudaABI::generatePTX() {
   KernelModule.addModuleFlag(llvm::Module::Override, "nvvm-reflect-ftz", true);
 
   if (OptLevel > 0) {
-    if (OptLevel > 3)
+    if (OptLevel > 3) 
       OptLevel = 3;
-    LLVM_DEBUG(dbgs() << "\t- running kernel module optimization passes...\n");
     PipelineTuningOptions pto;
     pto.LoopVectorization = OptLevel > 2;
     pto.SLPVectorization = OptLevel > 2;

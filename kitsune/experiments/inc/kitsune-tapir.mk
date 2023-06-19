@@ -2,7 +2,7 @@
 # Kitsune+Tapir specific flags used by all the experiments.
 #
 # 
-KITSUNE_PREFIX?=/projects/kitsune/${host_arch}/15.x
+KITSUNE_PREFIX?=/projects/kitsune/${host_arch}/16.x
 KITSUNE_OPTLEVEL?=3
 KITSUNE_ABI_OPTLEVEL?=$(KITSUNE_OPTLEVEL)
 KITSUNE_OPTFLAGS?=-O$(KITSUNE_OPTLEVEL)
@@ -13,9 +13,8 @@ GPU_STRIPMINE_FLAGS?=-mllvm -stripmine-count=1 -mllvm -stripmine-coarsen-factor=
 ##################################
 TAPIR_CUDA_FLAGS?=-ftapir=cuda \
  -O$(KITSUNE_OPTLEVEL) \
- -ffp-contract=fast \
  -mllvm -cuabi-opt-level=$(KITSUNE_ABI_OPTLEVEL) \
- -mllvm -cuabi-prefetch=true \
+ -mllvm -cuabi-prefetch=false \
  -mllvm -cuabi-streams=false \
  -mllvm -cuabi-arch=$(CUDA_ARCH) \
  $(GPU_STRIPMINE_FLAGS) \
@@ -36,7 +35,6 @@ endif
 ##################################
 TAPIR_HIP_FLAGS?=-ftapir=hip \
   -O$(KITSUNE_OPTLEVEL) \
-  -ffp-contract=fast \
   -mllvm -hipabi-opt-level=$(KITSUNE_ABI_OPTLEVEL) \
   -mllvm -hipabi-arch=$(AMDGPU_ARCH) \
   -mllvm -amdgpu-internalize-symbols \
@@ -44,8 +42,11 @@ TAPIR_HIP_FLAGS?=-ftapir=hip \
   -mllvm -amdgpu-early-inline-all=true \
   -mllvm -vectorize-loops \
   -mllvm -vectorize-slp \
+  -mllvm -hipabi-no-prefetch \
+  -ffp-contract=fast \
   $(GPU_STRIPMINE_FLAGS) \
   $(TAPIR_HIP_EXTRA_FLAGS)
+  #-mllvm -hipabi-xnack=true \
   #-mllvm -hipabi-xnack=true \
 
 TAPIR_HIP_LTO_FLAGS?=-Wl,--tapir-target=hip,--lto-O$(KITSUNE_OPTLEVEL),\

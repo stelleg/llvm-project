@@ -352,16 +352,16 @@ __attribute__((malloc)) void *__kitrt_cuMemAllocManaged(size_t size) {
   // stream.  Recall that the current practice is for the actual allocation
   // to occur on first touch -- thus our 'prefetch' status here is a bit
   // misleading (technically we are not prefetched to either host nor device).
-  CU_SAFE_CALL(
-      cuMemAdvise_p(devp, size, CU_MEM_ADVISE_SET_ACCESSED_BY, _kitrtCUdevice));
-
+  // 
+  CU_SAFE_CALL(cuMemAdvise_p(devp, size, CU_MEM_ADVISE_SET_ACCESSED_BY, 
+                             _kitrtCUdevice));
   CU_SAFE_CALL(cuMemAdvise_p(devp, size, CU_MEM_ADVISE_SET_PREFERRED_LOCATION,
                              _kitrtCUdevice));
+
 
   int enable = 1;
   CU_SAFE_CALL(
       cuPointerSetAttribute_p(&enable, CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, devp));
-
   // Register this allocation so the runtime can help track the
   // locality (and affinity) of data.
   __kitrt_registerMemAlloc((void *)devp, size);
@@ -405,7 +405,8 @@ void __kitrt_cuMemPrefetchOnStream(void *vp, void *stream) {
   fprintf(stderr, "kitrt: prefetch request for pointer %p on stream %p.\n", vp,
           stream);
 #endif
-  if (__kitrt_cuIsMemManaged(vp) && not __kitrt_isMemPrefetched(vp)) {
+  if (not __kitrt_isMemPrefetched(vp)) {
+  //if (__kitrt_cuIsMemManaged(vp) && not __kitrt_isMemPrefetched(vp)) {
     size_t size = __kitrt_getMemAllocSize(vp);
     if (size > 0) {
       CU_SAFE_CALL(cuMemPrefetchAsync_p((CUdeviceptr)vp, size, _kitrtCUdevice,
@@ -800,7 +801,8 @@ void *__kitrt_cuLaunchKernel(llvm::Module &m, void **args, size_t n) {
 void __kitrt_cuStreamSynchronize(void *vs) {
   if (_kitrtEnableTiming)
     return; // TODO: Is this really safe?  We sync with events for timing.
-  CU_SAFE_CALL(cuStreamSynchronize_p((CUstream)vs));
+  CU_SAFE_CALL(cuCtxSynchronize());
+  //CU_SAFE_CALL(cuStreamSynchronize_p((CUstream)vs));
 }
 
 void __kitrt_cuSynchronizeStreams() {

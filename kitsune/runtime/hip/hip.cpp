@@ -358,8 +358,17 @@ void *__kitrt_hipMemAllocManaged(size_t size) {
   assert(_kitrt_hipIsInitialized && "kitrt: hip has not been initialized!");
   void *memPtr;
   HIP_SAFE_CALL(hipMallocManaged_p(&memPtr, size, hipMemAttachGlobal));
+  // Per AMD docs: Set the preferred location for the data as the specified device.
+  HIP_SAFE_CALL(hipMemAdvise_p(memPtr, size, hipMemAdviseSetPreferredLocation,
+                              _kitrt_hipDeviceID));
+  // Per AMD docs: Data will be accessed by the specified device, so 
+  // prevent page faults as much as possible.
   HIP_SAFE_CALL(hipMemAdvise_p(memPtr, size, hipMemAdviseSetAccessedBy,
-                               _kitrt_hipDeviceID));
+                              _kitrt_hipDeviceID));
+  // Per AMD docs: The default memory model is fine-grain. That allows coherent 
+  // operations between host and device, while executing kernels. The coarse-grain 
+  // can be used for data that only needs to be coherent at dispatch boundaries 
+  // for better performance.
   HIP_SAFE_CALL(hipMemAdvise_p(memPtr, size, hipMemAdviseSetCoarseGrain,
                                _kitrt_hipDeviceID));
   __kitrt_registerMemAlloc(memPtr, size);
@@ -446,7 +455,7 @@ void __kitrt_hipMemPrefetchOnStream(void *vp, void *stream) {
                   "kitrt: hip -- issued prefetch for %p (bytes = %ld), "
                   "sync'ing device",
                   vp, size);
-        HIP_SAFE_CALL(hipDeviceSynchronize());
+        //HIP_SAFE_CALL(hipDeviceSynchronize());
       }
     }
   }

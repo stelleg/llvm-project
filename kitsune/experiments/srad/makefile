@@ -5,11 +5,13 @@ targets = srad-forall.opencilk.${host_arch}
 ifeq ($(BUILD_CUDA_EXPERIMENTS),true)
   targets += srad-forall.cuda.${host_arch}
   targets += srad-kokkos.nvcc.${host_arch}
+  targets += srad-kokkos.clang.cuda.${host_arch}
 endif
 
 ifeq ($(BUILD_HIP_EXPERIMENTS),true)
   targets += srad-forall.hip.${host_arch}
   targets += srad-kokkos.hipcc.${host_arch}
+  targets += srad-kokkos.clang.hip.${host_arch}
 endif
 
 all: ${targets}
@@ -21,7 +23,7 @@ srad-forall.opencilk.${host_arch}: srad-forall.cpp
 	@$(FILE_SIZE)
 srad-forall.cuda.${host_arch}: srad-forall.cpp 
 	@echo $@
-	@$(TIME_CMD) $(KIT_CXX) $(TAPIR_CUDA_FLAGS) -o $@ $< -Xlinker -rpath=$(KITSUNE_PREFIX)/lib
+	$(TIME_CMD) $(KIT_CXX) -v $(TAPIR_CUDA_FLAGS) -o $@ $< -Xlinker -rpath=$(KITSUNE_PREFIX)/lib
 	@$(FILE_SIZE)
 srad-forall.hip.${host_arch}: srad-forall.cpp 
 	@echo $@
@@ -37,11 +39,20 @@ srad-forall.hip.${host_arch}: srad-forall.cpp
 # kokkos-based tests (using views -- currently not compatible w/ kitsune)
 srad-kokkos.nvcc.${host_arch}: srad-kokkos.cpp 
 	@echo $@
-	@$(TIME_CMD) $(KOKKOS_NVCC) $(KOKKOS_NVCC_FLAGS) -o $@ $< $(KOKKOS_CUDA_LIBS) -Xlinker -rpath=$(KOKKOS_CUDA_PREFIX)/lib64 
+	$(TIME_CMD) $(KOKKOS_NVCC) $(KOKKOS_NVCC_FLAGS) -o $@ $< $(KOKKOS_CUDA_LIBS) -Xlinker -rpath=$(KOKKOS_CUDA_PREFIX)/lib64 
 	@$(FILE_SIZE)
+srad-kokkos.clang.cuda.${host_arch}: srad-kokkos.cpp 
+	@echo $@
+	$(TIME_CMD) $(kitclangxx) -v $(KOKKOS_CLANG_CUDA_FLAGS) -o $@ $< $(KOKKOS_CUDA_LIBS) -Xlinker -rpath=$(KOKKOS_CUDA_PREFIX)/lib64 
+	@$(FILE_SIZE)
+
 srad-kokkos.hipcc.${host_arch}: srad-kokkos.cpp 
 	@echo $@
 	@$(TIME_CMD) $(KOKKOS_HIPCC) $(KOKKOS_HIP_FLAGS) -o $@ $< $(KOKKOS_HIP_LIBS) -Xlinker -rpath=$(KOKKOS_HIP_PREFIX)/lib64 
+	@$(FILE_SIZE)
+srad-kokkos.clang.hip.${host_arch}: srad-kokkos.cpp 
+	@echo $@
+	@$(TIME_CMD) $(kitclangxx) -fPIC --language=hip $(KOKKOS_HIP_FLAGS) -o $@ $< $(KOKKOS_HIP_LIBS) $(HIP_LIBS) -Xlinker -rpath=$(KOKKOS_HIP_PREFIX)/lib64
 	@$(FILE_SIZE)
 #####
 

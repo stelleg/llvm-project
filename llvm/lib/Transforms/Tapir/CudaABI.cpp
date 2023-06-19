@@ -322,7 +322,6 @@ static std::string virtualArchForCudaArch(StringRef Arch) {
   // TODO: We've scaled back some from the full suite of Nvidia targets
   // as we are going in assuming we will support only CUDA 11 or greater.
   // We should probably raise an error for sm_2x and sm_3x targets.
-
   LLVM_DEBUG(dbgs() << "cuabi: target architecture '" << Arch << "'.\n");
   std::string VirtArch =
       llvm::StringSwitch<std::string>(Arch)
@@ -340,10 +339,8 @@ static std::string virtualArchForCudaArch(StringRef Arch) {
           .Case("sm_80", "compute_80") // Ampere
           .Case("sm_86", "compute_86") //
           .Case("sm_87", "compute_87") //
+          .Case("sm_90", "compute_90") // Hopper 
           .Default("unknown");
-
-  LLVM_DEBUG(dbgs() << "cuabi: compute architecture '" << VirtArch << "'.\n");
-  return VirtArch;
 }
 
 static std::string PTXVersionFromCudaVersion() {
@@ -374,9 +371,11 @@ static std::string PTXVersionFromCudaVersion() {
           .Case("11.3", "+ptx72")
           .Case("11.4", "+ptx72")
           .Case("11.5", "+ptx72")
-          .Case("11.6", "+ptx72") // TODO: should be at best ptx76.
-          .Case("11.7", "+ptx72") // TODO: should be at best ptx77.
-          .Case("11.8", "+ptx72") // TODO: should be at best ptx78.
+          .Case("11.6", "+ptx76") // TODO: should be at best ptx76.
+          .Case("11.7", "+ptx77") // TODO: should be at best ptx77.
+          .Case("11.8", "+ptx78") // TODO: should be at best ptx78.
+          .Case("12.0", "+ptx78") // TODO: should be at best ptx78.
+          .Case("12.1", "+ptx78") // TODO: should be at best ptx78.
           .Default("+ptx72");
 
   LLVM_DEBUG(dbgs() << "cuabi: target ptx version: " << PTXVersionStr << "\n");
@@ -1412,6 +1411,7 @@ CudaABIOutputFile CudaABI::assemblePTXFile(CudaABIOutputFile &PTXFile) {
       break;
     case 3:
       PTXASArgList.push_back("3");
+      PTXASArgList.push_back("-v");
       break;
     default:
       llvm_unreachable_internal("unhandled/unexpected optimization level",

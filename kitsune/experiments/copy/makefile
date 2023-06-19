@@ -14,6 +14,7 @@ ifeq ($(BUILD_HIP_EXPERIMENTS),true)
   targets += copy-forall.hip.${host_arch}
   targets += copy-kokkos.hipcc.${host_arch}
   targets += copy-kokkos.hip.kitsune.${host_arch}
+  targets += copy-hip.${host_arch}
 endif
 
 
@@ -53,7 +54,11 @@ copy-kokkos.hipcc.${host_arch}: copy-kokkos.cpp
 	@${TIME_CMD} $(KOKKOS_HIPCC) $(KOKKOS_HIP_FLAGS) -o $@ $< $(KOKKOS_HIP_LIBS) -Xlinker -rpath=$(KOKKOS_HIP_PREFIX)/lib64 
 	@${FILE_SIZE}
 
-
+# hip version 
+copy-hip.${host_arch}: copy-hip.cpp
+	@echo $@
+	@$(TIME_CMD) $(HIPCC) $(HIPCC_CXX_FLAGS) -o $@ $<
+	@$(FILE_SIZE)
 #####
 define newline 
 
@@ -62,7 +67,7 @@ endef
 
 run: $(targets) 
 	@echo "running generated exeutables..."
-	$(foreach prog,$(targets),$(call RUN_test,$(prog)))
+	@$(foreach prog,$(targets),$(call RUN_test,$(prog)))
 ##### 
 
 .PHONY: all clean run

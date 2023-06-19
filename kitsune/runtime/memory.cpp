@@ -52,9 +52,17 @@
 //===----------------------------------------------------------------------===//
 
 #include <cstdlib>
+#include "memory_map.h"
 
 extern "C" __attribute__((malloc)) void *__kitrt_defaultMemAlloc(size_t bytes) {
-  return malloc(bytes);
+  void *ptr = malloc(bytes); 
+  __kitrt_registerMemAlloc(ptr, bytes, false);
+  return ptr;
 }
 
-extern "C" void __kitrt_defaultMemFree(void *ptr) { free(ptr); }
+extern "C" void __kitrt_defaultMemFree(void *ptr) { 
+  if (__kitrt_getMemAllocSize(ptr) > 0)
+    __kitrt_unregisterMemAlloc(ptr); 
+  free(ptr);  
+}
+

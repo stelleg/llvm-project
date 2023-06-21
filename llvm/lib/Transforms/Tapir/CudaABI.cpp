@@ -324,6 +324,7 @@ static std::string virtualArchForCudaArch(StringRef Arch) {
   // We should probably raise an error for sm_2x and sm_3x targets.
   LLVM_DEBUG(dbgs() << "cuabi: target architecture '" << Arch << "'.\n");
   std::string VirtArch =
+<<<<<<< HEAD
       llvm::StringSwitch<std::string>(Arch)
           // sm_20 (Fermi) is deprecated as of CUDA 9.
           // sm_3X (Kepler) is deprecated as of CUDA 11.
@@ -341,6 +342,28 @@ static std::string virtualArchForCudaArch(StringRef Arch) {
           .Case("sm_87", "compute_87") //
           .Case("sm_90", "compute_90") // Hopper 
           .Default("unknown");
+=======
+    llvm::StringSwitch<std::string>(Arch)
+      // sm_20 (Fermi) is deprecated as of CUDA 9.
+      // sm_3X (Kepler) is deprecated as of CUDA 11.
+      .Case("sm_50", "compute_50") // Maxwell (to be deprecated w/ CUDA 12?)
+      .Case("sm_52", "compute_52") //
+      .Case("sm_53", "compute_53") //
+      .Case("sm_60", "compute_60") // Pascal
+      .Case("sm_61", "compute_61") //
+      .Case("sm_62", "compute_62") //
+      .Case("sm_70", "compute_70") // Volta
+      .Case("sm_72", "compute_72") //
+      .Case("sm_75", "compute_75") // Turing
+      .Case("sm_80", "compute_80") // Ampere
+      .Case("sm_86", "compute_86") //
+      .Case("sm_87", "compute_87") //
+      .Case("sm_90", "compute_90") // Hopper 
+      .Default("unknown");
+
+  LLVM_DEBUG(dbgs() << "cuabi: compute architecture '" << VirtArch << "'.\n");
+  return VirtArch;
+>>>>>>> 77c77fa19c7f (Some clean up, testing, and a fix to bring our forall sema up-to-date)
 }
 
 static std::string PTXVersionFromCudaVersion() {
@@ -354,6 +377,7 @@ static std::string PTXVersionFromCudaVersion() {
 
   LLVM_DEBUG(dbgs() << "cuabi: cuda toolkit version: " << CudaVersionStr
                     << "\n");
+<<<<<<< HEAD
 
   std::string PTXVersionStr =
       llvm::StringSwitch<std::string>(CudaVersionStr.str())
@@ -378,6 +402,32 @@ static std::string PTXVersionFromCudaVersion() {
           .Case("12.1", "+ptx78") // TODO: should be at best ptx78.
           .Default("+ptx72");
 
+=======
+
+  std::string PTXVersionStr =
+    llvm::StringSwitch<std::string>(CudaVersionStr.str())
+      // TODO: These CUDA to PTX version translations will have
+      // to be watched between CUDA and LLVM resources.  It is
+      // not uncommon for LLVM to lag well behind CUDA PTX versions.
+      // The details below are based on Cuda 11.6 and LLVM 13.x.
+      .Case("10.0", "+ptx63")
+      .Case("10.1", "+ptx64")
+      .Case("10.2", "+ptx65")
+      .Case("10.0", "+ptx63")
+      .Case("11.0", "+ptx70")
+      .Case("11.1", "+ptx71")
+      .Case("11.2", "+ptx72")
+      .Case("11.3", "+ptx72")
+      .Case("11.4", "+ptx72")
+      .Case("11.5", "+ptx72")
+      .Case("11.6", "+ptx72") // TODO: should be at best ptx76.
+      .Case("11.7", "+ptx72") // TODO: should be at best ptx77.
+      .Case("11.8", "+ptx72") // TODO: should be at best ptx78.
+      .Case("12.0", "+ptx78") // TODO: should be at best ptx78.
+      .Case("12.1", "+ptx78") // TODO: should be at best ptx78.
+      .Default("+ptx72");
+
+>>>>>>> 77c77fa19c7f (Some clean up, testing, and a fix to bring our forall sema up-to-date)
   LLVM_DEBUG(dbgs() << "cuabi: target ptx version: " << PTXVersionStr << "\n");
   return PTXVersionStr;
 }

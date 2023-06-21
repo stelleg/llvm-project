@@ -2088,16 +2088,15 @@ void HipABI::registerBundle(GlobalVariable *Bundle) {
 }
 
 void HipABI::postProcessModule() {
-  // At this point all tapir constructs in the input module (M) have
-  // been transformed (e.g., outlined) into the "kernel module"
-  // (KernelModule) and we can now take the necessary steps to wrap up
-  // the necessary steps for module-wide changes for both modules.
+  // At this point, all tapir constructs in the input module (M) have been
+  // transformed (i.e., outlined) into the kernel module. We can now wrap up
+  // module-wide changes for both modules.
   LLVM_DEBUG(dbgs() << "\n\n"
-                    << "hipabi: POST PROCESSING the kernel (device) '"
-                    << KernelModule.getName() << "' and input '" << M.getName()
-                    << "' modules.\n");
+                    << "hipabi: postprocessing the kernel '"
+                    << KernelModule.getName() << "' and input '" 
+                    << M.getName() << "' modules.\n");
   LLVM_DEBUG(saveModuleToFile(&KernelModule, KernelModule.getName().str() +
-                                                 ".post.unoptimized"));
+                                                 ".post.preopt.ll"));
 
   if (Function *puts = KernelModule.getFunction("puts")) {
     Value *printf = KernelModule.getFunction("printf");
@@ -2166,9 +2165,9 @@ void HipABI::postProcessModule() {
   // passes -- in general the return on investment here is probably
   // pretty low but we have yet to dig into any details.  For now
   // we will only run this at the highest optimization levels.
-  if (RunPostOpts && OptLevel > 2) {
-    LLVM_DEBUG(dbgs() << "hipabi: Running EXPERIMENTAL post-transform "
-                      << "host-side optimization pass.\n");
+  if (RunPostOpts) {
+    LLVM_DEBUG(dbgs() << "hipabi: Running experimental post-transform "
+                      << "host-side (re)optimization passes.\n");
 
     PipelineTuningOptions pto;
     pto.LoopVectorization = OptLevel > 2;
@@ -2205,6 +2204,7 @@ void HipABI::postProcessModule() {
     pb.buildPerModuleDefaultPipeline(optLevel);
     mpm.addPass(VerifierPass());
     mpm.run(M, mam);
+    LLVM_DEBUG(dbgs() << "\tpasses complete.\n");
   }
 
   if (not KeepIntermediateFiles)
@@ -2212,11 +2212,17 @@ void HipABI::postProcessModule() {
 }
 
 LoopOutlineProcessor *HipABI::getLoopOutlineProcessor(const TapirLoopInfo *TL) {
+  // Create a HIP loop outline processor for transforming parallel tapir loop
+  // constructs into suitable GPU device code.  We hand the outliner the kernel
+  // module (KM) as the destination for all generated (device-side) code.
   std::string ModuleName = sys::path::filename(M.getName()).str();
-  std::string KernelName;
+  Loop *TheLoop = TL->getLoop();
+  Function *Fn = TheLoop->getHeader()->getParent();
+  std::string KernelName = Fn->getName().str();
 
-  if (M.getNamedMetadata("llvm.dbg")) {
-    // If we have debug info in the module, use a line number-based
+  if (M.getNamedMetadata(
+          "llvm.dbg")) { // TODO: Is there any hip specific debug naming?
+    // If we have debug info in the module use a line number-based
     // naming scheme for kernels.
     unsigned LineNumber = TL->getLoop()->getStartLoc()->getLine();
     KernelName =

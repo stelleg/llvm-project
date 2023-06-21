@@ -18,8 +18,9 @@ TAPIR_CUDA_FLAGS?=-ftapir=cuda \
  -mllvm -cuabi-prefetch=true \
  -mllvm -cuabi-streams=false \
  -mllvm -cuabi-arch=$(CUDA_ARCH) \
- $(GPU_STRIPMINE_FLAGS)\
+ $(GPU_STRIPMINE_FLAGS) \
  $(TAPIR_CUDA_EXTRA_FLAGS)
+ #-mllvm -cuabi-run-post-opts \
 
 TAPIR_CUDA_LTO_FLAGS?=-Wl,--tapir-target=cuda,--lto-O${KITSUNE_OPTLEVEL},\
 -mllvm,-cuabi-opt-level=${KITSUNE_OPTLEVEL},-mllvm,-cuabi-arch=$(CUDA_ARCH),\

@@ -104,7 +104,7 @@ public:
     typedef std::set<Value*> SyncRegionListTy;
     SyncRegionListTy SyncRegList;
 
-    Module   KM;
+    Module   KernelModule;
     TargetMachine *PTXTargetMachine;
 };
 

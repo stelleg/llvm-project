@@ -342,7 +342,6 @@ static std::string virtualArchForCudaArch(StringRef Arch) {
           .Case("sm_87", "compute_87") //
           .Case("sm_90", "compute_90") // Hopper 
           .Default("unknown");
-
   LLVM_DEBUG(dbgs() << "cuabi: compute architecture '" << VirtArch << "'.\n");
   return VirtArch;
 }
@@ -1377,7 +1376,7 @@ CudaABIOutputFile CudaABI::assemblePTXFile(CudaABIOutputFile &PTXFile) {
   PTXASArgList.push_back(GPUArch.c_str());
 
   // For now let's always warn if we spill registers...
-  PTXASArgList.push_back("--warn-spills");
+  PTXASArgList.push_back("--warn-on-spills");
 
   if (Verbose)
     PTXASArgList.push_back("--verbose");
@@ -2085,9 +2084,9 @@ CudaABI::getLoopOutlineProcessor(const TapirLoopInfo *TL) {
     unsigned LineNumber = TL->getLoop()->getStartLoc()->getLine();
     KernelName = CUABI_PREFIX + ModuleName + "_" + Twine(LineNumber).str();
   } else {
-    SmallString<255> ModName(Twine(ModuleName).str());
-    sys::path::replace_extension(ModName, "");
-    KernelName = CUABI_PREFIX + ModName.c_str();
+    //SmallString<255> ModName(Twine(ModuleName).str());
+    //sys::path::replace_extension(ModName, "");
+    //KernelName = CUABI_PREFIX + ModName.c_str();
     // In the non-debug mode we use a consecutive numbering scheme for our
     // kernel names (this is currently handled via the 'make unique' parameter).
     KernelName = CUABI_PREFIX + KernelName;

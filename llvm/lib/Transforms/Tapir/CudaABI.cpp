@@ -115,20 +115,13 @@ static cl::opt<bool>
 static cl::opt<unsigned>
     OptLevel("cuabi-opt-level", cl::init(3), cl::NotHidden,
              cl::desc("Specify the GPU kernel optimization level."));
-<<<<<<< HEAD
 static const OptimizationLevel *optLevels[4] = {
     &OptimizationLevel::O0,
     &OptimizationLevel::O1,
     &OptimizationLevel::O2,
     &OptimizationLevel::O3
-=======
-static OptimizationLevel optLevels[] = {
-    OptimizationLevel::O0,
-    OptimizationLevel::O1,
-    OptimizationLevel::O2,
-    OptimizationLevel::O3,
->>>>>>> 853af66c24c6 (Some clean up, testing, and a fix to bring our forall sema up-to-date)
 };
+
 /// Enable an extra set of passes over the host-side code after the
 /// code has been transformed (e.g., loops replaced with kernel launch
 /// calls).
@@ -263,15 +256,9 @@ static void saveModuleToFile(const Module *M,
   std::error_code EC;
   SmallString<256> IRFileName;
   if (FileName.empty())
-<<<<<<< HEAD
     IRFileName = Twine(sys::path::filename(M->getName())).str() + ".cuda.ll";
   else
     IRFileName = Twine(FileName).str() + ".cuda.ll";
-=======
-    IRFileName = Twine(sys::path::filename(M->getName())).str() + ".hipabi.ll";
-  else
-    IRFileName = Twine(FileName).str() + ".hipabi.ll";
->>>>>>> 853af66c24c6 (Some clean up, testing, and a fix to bring our forall sema up-to-date)
 
   std::unique_ptr<ToolOutputFile> IRFile = std::make_unique<ToolOutputFile>(
       IRFileName, EC, sys::fs::OpenFlags::OF_None);
@@ -353,13 +340,10 @@ static std::string virtualArchForCudaArch(StringRef Arch) {
           .Case("sm_80", "compute_80") // Ampere
           .Case("sm_86", "compute_86") //
           .Case("sm_87", "compute_87") //
-<<<<<<< HEAD
           .Case("sm_90", "compute_90") // Hopper 
           .Default("unknown");
-=======
           .Default("unknown");
 
->>>>>>> 853af66c24c6 (Some clean up, testing, and a fix to bring our forall sema up-to-date)
   LLVM_DEBUG(dbgs() << "cuabi: compute architecture '" << VirtArch << "'.\n");
   return VirtArch;
 }

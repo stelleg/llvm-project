@@ -115,11 +115,11 @@ static cl::opt<bool>
 static cl::opt<unsigned>
     OptLevel("cuabi-opt-level", cl::init(3), cl::NotHidden,
              cl::desc("Specify the GPU kernel optimization level."));
-static OptimizationLevel optLevels[] = {
-    OptimizationLevel::O0,
-    OptimizationLevel::O1,
-    OptimizationLevel::O2,
-    OptimizationLevel::O3,
+static const OptimizationLevel *optLevels[4] = {
+    &OptimizationLevel::O0,
+    &OptimizationLevel::O1,
+    &OptimizationLevel::O2,
+    &OptimizationLevel::O3
 };
 /// Enable an extra set of passes over the host-side code after the
 /// code has been transformed (e.g., loops replaced with kernel launch
@@ -255,9 +255,9 @@ static void saveModuleToFile(const Module *M,
   std::error_code EC;
   SmallString<256> IRFileName;
   if (FileName.empty())
-    IRFileName = Twine(sys::path::filename(M->getName())).str() + ".hipabi.ll";
+    IRFileName = Twine(sys::path::filename(M->getName())).str() + ".cuda.ll";
   else
-    IRFileName = Twine(FileName).str() + ".hipabi.ll";
+    IRFileName = Twine(FileName).str() + ".cuda.ll";
 
   std::unique_ptr<ToolOutputFile> IRFile = std::make_unique<ToolOutputFile>(
       IRFileName, EC, sys::fs::OpenFlags::OF_None);
@@ -341,11 +341,8 @@ static std::string virtualArchForCudaArch(StringRef Arch) {
           .Case("sm_87", "compute_87") //
           .Case("sm_90", "compute_90") // Hopper 
           .Default("unknown");
-<<<<<<< HEAD
   LLVM_DEBUG(dbgs() << "cuabi: compute architecture '" << VirtArch << "'.\n");
   return VirtArch;
-=======
->>>>>>> a6c361ef31d4 (Tweaks and changes for exploring new targets supported by 16.x...)
 }
 
 static std::string PTXVersionFromCudaVersion() {
@@ -1378,7 +1375,7 @@ CudaABIOutputFile CudaABI::assemblePTXFile(CudaABIOutputFile &PTXFile) {
   PTXASArgList.push_back(GPUArch.c_str());
 
   // For now let's always warn if we spill registers...
-  PTXASArgList.push_back("--warn-spills");
+  PTXASArgList.push_back("--warn-on-spills");
 
   if (Verbose)
     PTXASArgList.push_back("--verbose");
@@ -1986,9 +1983,10 @@ CudaABIOutputFile CudaABI::generatePTX() {
     pb.registerLoopAnalyses(lam);
     PTXTargetMachine->registerPassBuilderCallbacks(pb);
     pb.crossRegisterProxies(lam, fam, cgam, mam);
-
-    OptimizationLevel OptimizationLevel = optLevels[OptLevel];
-    ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(OptimizationLevel);
+    errs() << "******** OptLevel = " << OptLevel << "\n";
+    //errs() << "******** [OptLevel] = " << *optLevels[OptLevel] << "\n";
+    
+    ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(*optLevels[OptLevel]);
     mpm.addPass(VerifierPass());
     mpm.run(KernelModule, mam);
     LLVM_DEBUG(dbgs() << "\t\tpasses complete.\n");
@@ -2030,9 +2028,12 @@ void CudaABI::postProcessModule() {
 
   finalizeLaunchCalls(M, Fatbinary);
   registerFatbinary(Fatbinary);
-  if (RunHostPostOpt) {
+  if (OptLevel > 0 && RunHostPostOpt) {
     LLVM_DEBUG(dbgs() << "cuabi: Running experimental post-transform "
                       << "host-side (re)optimization pass.\n");
+
+    if (OptLevel > 3)
+      OptLevel = 3;
 
     PipelineTuningOptions pto;
     pto.LoopVectorization = OptLevel > 2;
@@ -2054,13 +2055,7 @@ void CudaABI::postProcessModule() {
     PTXTargetMachine->registerPassBuilderCallbacks(pb);
     pb.crossRegisterProxies(lam, fam, cgam, mam);
 
-    OptimizationLevel optLevel = optLevels[OptLevel];
-    if (OptLevel <= 3) // unsigned...
-      optLevel = optLevels[OptLevel];
-
-    ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(optLevel);
-    mpm.addPass(VerifierPass());
-    pb.buildPerModuleDefaultPipeline(optLevel);
+    ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(*optLevels[OptLevel]);
     mpm.addPass(VerifierPass());
     mpm.run(M, mam);
     LLVM_DEBUG(dbgs() << "\tpasses complete.\n");
@@ -2091,9 +2086,9 @@ CudaABI::getLoopOutlineProcessor(const TapirLoopInfo *TL) {
     unsigned LineNumber = TL->getLoop()->getStartLoc()->getLine();
     KernelName = CUABI_PREFIX + ModuleName + "_" + Twine(LineNumber).str();
   } else {
-    SmallString<255> ModName(Twine(ModuleName).str());
-    sys::path::replace_extension(ModName, "");
-    KernelName = CUABI_PREFIX + ModName.c_str();
+    //SmallString<255> ModName(Twine(ModuleName).str());
+    //sys::path::replace_extension(ModName, "");
+    //KernelName = CUABI_PREFIX + ModName.c_str();
     // In the non-debug mode we use a consecutive numbering scheme for our
     // kernel names (this is currently handled via the 'make unique' parameter).
     KernelName = CUABI_PREFIX + KernelName;

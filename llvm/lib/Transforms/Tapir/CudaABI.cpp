@@ -342,7 +342,6 @@ static std::string virtualArchForCudaArch(StringRef Arch) {
           .Case("sm_87", "compute_87") //
           .Case("sm_90", "compute_90") // Hopper 
           .Default("unknown");
-          .Default("unknown");
 
   LLVM_DEBUG(dbgs() << "cuabi: compute architecture '" << VirtArch << "'.\n");
   return VirtArch;

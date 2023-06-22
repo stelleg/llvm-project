@@ -4,13 +4,11 @@ targets = euler3d-forall.opencilk.${host_arch}
 
 ifeq ($(BUILD_CUDA_EXPERIMENTS),true)
   targets += euler3d-forall.cuda.${host_arch}
-  targets += euler3d-kokkos.nvcc.${host_arch}
   targets += euler3d-kokkos.kitsune.cuda.${host_arch}
 endif
 
 ifeq ($(BUILD_HIP_EXPERIMENTS),true)
   targets += euler3d-forall.hip.${host_arch}
-  targets += euler3d-kokkos.hipcc.${host_arch}
   targets += euler3d-kokkos.kitsune.hip.${host_arch}
 endif
 

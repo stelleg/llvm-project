@@ -1413,7 +1413,6 @@ CudaABIOutputFile CudaABI::assemblePTXFile(CudaABIOutputFile &PTXFile) {
       break;
     case 3:
       PTXASArgList.push_back("3");
-      PTXASArgList.push_back("-v");
       break;
     default:
       llvm_unreachable_internal("unhandled/unexpected optimization level",
@@ -1983,9 +1982,7 @@ CudaABIOutputFile CudaABI::generatePTX() {
     pb.registerLoopAnalyses(lam);
     PTXTargetMachine->registerPassBuilderCallbacks(pb);
     pb.crossRegisterProxies(lam, fam, cgam, mam);
-    errs() << "******** OptLevel = " << OptLevel << "\n";
-    //errs() << "******** [OptLevel] = " << *optLevels[OptLevel] << "\n";
-    
+
     ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(*optLevels[OptLevel]);
     mpm.addPass(VerifierPass());
     mpm.run(KernelModule, mam);

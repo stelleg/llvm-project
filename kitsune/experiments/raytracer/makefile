@@ -4,14 +4,12 @@ targets = raytracer-forall.opencilk.${host_arch}
 
 ifeq ($(BUILD_CUDA_EXPERIMENTS),true)
   targets += raytracer-forall.cuda.${host_arch}
-  targets += raytracer-kokkos.nvcc.${host_arch}
   targets += raytracer-kokkos.cuda.kitsune.${host_arch}
   targets += raytracer-cuda.${host_arch}
 endif
 
 ifeq ($(BUILD_HIP_EXPERIMENTS),true)
   targets += raytracer-forall.hip.${host_arch}
-  targets += raytracer-kokkos.hipcc.${host_arch}
   targets += raytracer-kokkos.hip.kitsune.${host_arch}
   targets += raytracer-hip.${host_arch}
 endif

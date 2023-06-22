@@ -4,12 +4,10 @@ targets = saxpy-forall.opencilk.${host_arch}
 
 ifeq ($(BUILD_CUDA_EXPERIMENTS),true)
   targets += saxpy-forall.cuda.${host_arch}
-  targets += saxpy-kokkos.nvcc.${host_arch}
 endif
 
 ifeq ($(BUILD_HIP_EXPERIMENTS),true)
   targets += saxpy-forall.hip.${host_arch}
-  targets += saxpy-kokkos.hipcc.${host_arch}
 endif
 
 all: ${targets}

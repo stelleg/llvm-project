@@ -426,6 +426,10 @@ public:
                    static_cast<const BasicBlock *>(this)->getSingleSuccessor());
   }
 
+  // Returns the condition variable of a conditional branch of a basic block,
+  // if it exists
+  const Value *getCond() const;
+
   /// Return the successor of this block if it has a unique successor.
   /// Otherwise return a null pointer.
   ///

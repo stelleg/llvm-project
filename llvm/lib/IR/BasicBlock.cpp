@@ -659,6 +659,18 @@ void BasicBlock::replacePhiUsesWith(BasicBlock *Old, BasicBlock *New) {
   }
 }
 
+const Value *BasicBlock::getCond() const{
+  auto *t = getTerminator(); 
+  if(t){
+    if(auto* bi = dyn_cast<BranchInst>(t)){
+      if(bi->isConditional()){
+        return bi->getCondition();
+      }
+    }
+  }
+  return nullptr;
+}
+
 void BasicBlock::replaceSuccessorsPhiUsesWith(BasicBlock *Old,
                                               BasicBlock *New) {
   Instruction *TI = getTerminator();

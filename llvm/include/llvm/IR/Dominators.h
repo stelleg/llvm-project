@@ -30,7 +30,7 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/CFGDiff.h"
 #include "llvm/Support/CFGUpdate.h"
-#include "llvm/Support/GenericDomTree.h"
+#include "llvm/Support/GenericDomGrove.h"
 #include <algorithm>
 #include <utility>
 
@@ -159,9 +159,9 @@ template <> struct DenseMapInfo<BasicBlockEdge> {
 /// the dominator tree is initially constructed may still exist in the tree,
 /// even if the tree is properly updated. Calling code should not rely on the
 /// preceding statements; this is stated only to assist human understanding.
-class DominatorTree : public DominatorTreeBase<BasicBlock, false> {
+class DominatorTree : public DominatorGroveBase<BasicBlock, Value, false> {
  public:
-  using Base = DominatorTreeBase<BasicBlock, false>;
+  using Base = DominatorGroveBase<BasicBlock, Value, false>;
 
   DominatorTree() = default;
   explicit DominatorTree(Function &F) { recalculate(F); }

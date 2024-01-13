@@ -302,6 +302,35 @@ protected:
   DominatorTreeBase(const DominatorTreeBase &) = delete;
   DominatorTreeBase &operator=(const DominatorTreeBase &) = delete;
 
+  const std::unique_ptr<DominatorTreeBase> copy() const{ 
+    auto dt = std::make_unique<DominatorTreeBase>();
+    dt->Roots = Roots;
+    dt->RootNode = RootNode;
+    dt->Parent = Parent;
+    dt->DFSInfoValid = false;
+    dt->SlowQueries = 0;
+    
+    // We maintain the invariant that any node added to the worklist has
+    // already been added to the new tree
+    SmallVector<DomTreeNodeBase<NodeT> *, 8> WL;
+    for(NodeT *r : Roots){
+      auto* R = dt->createNode(r);
+      R->Level=0; 
+      WL.push_back(R); 
+    }
+      
+    while(!WL.empty()){
+      auto *n = WL.pop_back_val();
+      auto *OldN = getNode(n->getBlock());
+      for(DomTreeNodeBase<NodeT> *ch : *OldN){
+        auto* CH = dt->createChild(ch->getBlock(), n); 
+        CH->setIDom(n); 
+        WL.push_back(CH); 
+      }
+    }
+    return std::move(dt);
+  }
+
   /// Iteration over roots.
   ///
   /// This may include multiple blocks if we are computing post dominators.

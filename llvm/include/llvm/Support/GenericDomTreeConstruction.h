@@ -594,6 +594,7 @@ struct SemiNCAInfo {
 
     DT.RootNode = DT.createNode(Root);
     SNCA.attachNewSubtree(DT, DT.RootNode);
+		DT.update(); 
   }
 
   void attachNewSubtree(DomTreeT& DT, const TreeNodePtr AttachTo) {

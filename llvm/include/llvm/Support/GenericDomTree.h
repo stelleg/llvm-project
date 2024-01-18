@@ -302,6 +302,8 @@ protected:
   DominatorTreeBase(const DominatorTreeBase &) = delete;
   DominatorTreeBase &operator=(const DominatorTreeBase &) = delete;
 
+	void update() {}; 
+
   const std::unique_ptr<DominatorTreeBase> copy() const{ 
     auto dt = std::make_unique<DominatorTreeBase>();
     dt->Roots = Roots;

@@ -14,10 +14,14 @@
 #define LLVM_SUPPORT_GENERICDOMGROVE_H
 
 #include<llvm/Support/GenericDomTree.h>
+#include<llvm/Support/Path.h>
 #include<llvm/ADT/SmallSet.h>
 #include<llvm/ADT/SmallPtrSet.h>
 #include<llvm/Demangle/Demangle.h>
 #include<llvm/IR/Instructions.h>
+#include "llvm/IR/Constants.h"
+#include<fstream>
+#include<iostream>
 //#include<llvm/Transforms/Utils/BasicBlockUtils.h>
 
 #define DEBUG_TYPE "domgrove"
@@ -55,15 +59,17 @@ public:
       auto tn = dtn.second.get();
       auto bb = tn ->getBlock();
       if(const Cond* cv = bb->getCond()){
-        auto s = m.find(cv);
-        if(s != m.end()){
-          // Found multiple basic blocks with the same condition variable!
-          found++; 
-          s->second.insert(bb);
-        } else {
-          SmallPtrSet<NodeT*, 2> sn; 
-          sn.insert(bb); 
-          m[cv] = sn;
+        if(!isa<UndefValue>(cv) && !isa<Constant>(cv)){
+          auto s = m.find(cv);
+          if(s != m.end()){
+            // Found multiple basic blocks with the same condition variable!
+            found++; 
+            s->second.insert(bb);
+          } else {
+            SmallPtrSet<NodeT*, 2> sn; 
+            sn.insert(bb); 
+            m[cv] = sn;
+          }
         }
       }
     }
@@ -97,8 +103,10 @@ public:
             auto tb = BranchInst::Create(old->getSuccessor(0)); 
             ReplaceInstWithInst(old, tb); 
 						*/	
-						tu.emplace_back(UpdateType(Delete, BB, old->getSuccessor(1))); 
-						fu.emplace_back(UpdateType(Delete, BB, old->getSuccessor(0))); 
+            if(old->getSuccessor(1) != old->getSuccessor(0)){
+              tu.emplace_back(UpdateType(Delete, BB, old->getSuccessor(1))); 
+              fu.emplace_back(UpdateType(Delete, BB, old->getSuccessor(0))); 
+            }
           }
         }
 
@@ -129,8 +137,8 @@ public:
         }
 				*/
 
-				tt->applyUpdates(tu);
-				tf->applyUpdates(fu); 
+				tt->applyPhantomUpdates(tu);
+				tf->applyPhantomUpdates(fu); 
 
         auto p = std::make_unique<SmallVector<std::unique_ptr<DominatorTreeBase<NodeT, IsPostDom> >, 2> >();
         p->push_back(std::move(tt)); 
@@ -148,7 +156,10 @@ public:
     bool naive = anyDom; 
     for(auto& b : bunches){
       bool dom = true;
+      bool istrue = true; 
       for(auto &t : *b){
+        istrue = not(istrue); 
+        LLVM_DEBUG(dbgs() << (istrue ? "true case:\n" : "false case:\n")); 
         LLVM_DEBUG(t->print(dbgs())); 
         LLVM_DEBUG(dbgs() << A->getBlock()->getName() << 
           " dominates " << B->getBlock()->getName() << " = " 
@@ -157,8 +168,22 @@ public:
       }
       anyDom |= dom; 
     }
-    if(!naive && anyDom) LLVM_DEBUG(dbgs() << "Found a context sensitive domination!\n"); 
-    return anyDom; 
+    if(!naive && anyDom && not(IsPostDom)){
+      LLVM_DEBUG(dbgs() << "Context sensitive domination: " << 
+        A->getBlock()->getName() << " dominates " <<  
+        B->getBlock()->getName() << "\n"); 
+      std::string fname = llvm::sys::path::filename(
+        A->getBlock()->getParent()->getParent()->getSourceFileName()).str(); 
+      std::cout << fname << ": " << 
+        A->getBlock()->getName().str() << " dominates " << 
+        B->getBlock()->getName().str() << "\n"; 
+      std::ofstream logfile;
+      logfile.open("/tmp/domdag-" + fname, std::ios::out | std::ios::app); 
+      logfile << A->getBlock()->getName().str() << " dominates " << 
+                 B->getBlock()->getName().str() << "\n"; 
+    }
+
+    return naive; 
   }
 
   bool dominates(const NodeT *A, const NodeT *B) const;

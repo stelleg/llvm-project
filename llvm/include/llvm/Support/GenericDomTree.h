@@ -39,6 +39,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <queue>
 
 namespace llvm {
 
@@ -275,7 +276,7 @@ protected:
 
   friend struct DomTreeBuilder::SemiNCAInfo<DominatorTreeBase>;
 
- public:
+public:
   DominatorTreeBase() = default;
 
   DominatorTreeBase(DominatorTreeBase &&Arg)
@@ -306,6 +307,7 @@ protected:
 
   const std::unique_ptr<DominatorTreeBase> copy() const{ 
     auto dt = std::make_unique<DominatorTreeBase>();
+
     dt->Roots = Roots;
     dt->RootNode = RootNode;
     dt->Parent = Parent;
@@ -314,20 +316,21 @@ protected:
     
     // We maintain the invariant that any node added to the worklist has
     // already been added to the new tree
-    SmallVector<DomTreeNodeBase<NodeT> *, 8> WL;
+    std::queue<DomTreeNodeBase<NodeT> *> WL;
     for(NodeT *r : Roots){
       auto* R = dt->createNode(r);
       R->Level=0; 
-      WL.push_back(R); 
+      WL.push(R); 
     }
       
     while(!WL.empty()){
-      auto *n = WL.pop_back_val();
+      auto *n = WL.front();
+      WL.pop();
       auto *OldN = getNode(n->getBlock());
       for(DomTreeNodeBase<NodeT> *ch : *OldN){
         auto* CH = dt->createChild(ch->getBlock(), n); 
         CH->setIDom(n); 
-        WL.push_back(CH); 
+        WL.push(CH); 
       }
     }
     return std::move(dt);
@@ -626,6 +629,14 @@ public:
     GraphDiff<NodePtr, IsPostDominator> PreViewCFG(
         Updates, /*ReverseApplyUpdates=*/true);
     DomTreeBuilder::ApplyUpdates(*this, PreViewCFG, nullptr);
+  }
+
+  void applyPhantomUpdates(ArrayRef<UpdateType> Updates) {
+    auto *PostViewCFG = new GraphDiff<NodePtr, IsPostDominator>(
+      Updates, false, false); 
+    GraphDiff<NodePtr, IsPostDominator> PreViewCFG(
+        Updates, /*ReverseApplyUpdates=*/false, /*PhantomUpdates=*/true);
+    DomTreeBuilder::ApplyUpdates(*this, PreViewCFG, PostViewCFG);
   }
 
   /// \param Updates An ordered sequence of updates to perform. The current CFG

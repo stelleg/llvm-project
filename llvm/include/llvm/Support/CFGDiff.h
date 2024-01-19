@@ -61,12 +61,15 @@ template <typename NodePtr, bool InverseGraph = false> class GraphDiff {
   using UpdateMapType = SmallDenseMap<NodePtr, DeletesInserts>;
   UpdateMapType Succ;
   UpdateMapType Pred;
+  UpdateMapType PhantomSucc;
+  UpdateMapType PhantomPred;
 
   // By default, it is assumed that, given a CFG and a set of updates, we wish
   // to apply these updates as given. If UpdatedAreReverseApplied is set, the
   // updates will be applied in reverse: deleted edges are considered re-added
   // and inserted edges are considered deleted when returning children.
   bool UpdatedAreReverseApplied;
+  bool PhantomUpdates;
 
   // Keep the list of legalized updates for a deterministic order of updates
   // when using a GraphDiff for incremental updates in the DominatorTree.
@@ -93,13 +96,26 @@ template <typename NodePtr, bool InverseGraph = false> class GraphDiff {
 public:
   GraphDiff() : UpdatedAreReverseApplied(false) {}
   GraphDiff(ArrayRef<cfg::Update<NodePtr>> Updates,
-            bool ReverseApplyUpdates = false) {
+            bool ReverseApplyUpdates = false,
+            bool PhantomUpdates = false) : PhantomUpdates(PhantomUpdates) {
     cfg::LegalizeUpdates<NodePtr>(Updates, LegalizedUpdates, InverseGraph);
-    for (auto U : LegalizedUpdates) {
-      unsigned IsInsert =
-          (U.getKind() == cfg::UpdateKind::Insert) == !ReverseApplyUpdates;
-      Succ[U.getFrom()].DI[IsInsert].push_back(U.getTo());
-      Pred[U.getTo()].DI[IsInsert].push_back(U.getFrom());
+    // Phantom updates are intended to be used on a cfg that hasn't had them
+    // applied
+    if(PhantomUpdates){
+      for (auto U : LegalizedUpdates) {
+        unsigned IsInsert =
+            (U.getKind() == cfg::UpdateKind::Insert) == !ReverseApplyUpdates;
+        PhantomSucc[U.getFrom()].DI[IsInsert].push_back(U.getTo());
+        PhantomPred[U.getTo()].DI[IsInsert].push_back(U.getFrom());
+      }
+    }
+    else {
+      for (auto U : LegalizedUpdates) {
+        unsigned IsInsert =
+            (U.getKind() == cfg::UpdateKind::Insert) == !ReverseApplyUpdates;
+        Succ[U.getFrom()].DI[IsInsert].push_back(U.getTo());
+        Pred[U.getTo()].DI[IsInsert].push_back(U.getFrom());
+      }
     }
     UpdatedAreReverseApplied = ReverseApplyUpdates;
   }
@@ -115,19 +131,39 @@ public:
     auto U = LegalizedUpdates.pop_back_val();
     unsigned IsInsert =
         (U.getKind() == cfg::UpdateKind::Insert) == !UpdatedAreReverseApplied;
-    auto &SuccDIList = Succ[U.getFrom()];
-    auto &SuccList = SuccDIList.DI[IsInsert];
-    assert(SuccList.back() == U.getTo());
-    SuccList.pop_back();
-    if (SuccList.empty() && SuccDIList.DI[!IsInsert].empty())
-      Succ.erase(U.getFrom());
+    // We pop updates from phantom updates and insert them into succ and pred,
+    // so that graph queries will see the results
+    if(PhantomUpdates){
+      Succ[U.getFrom()].DI[IsInsert].push_back(U.getTo());
+      Pred[U.getTo()].DI[IsInsert].push_back(U.getFrom());
+      auto &SuccDIList = PhantomSucc[U.getFrom()];
+      auto &SuccList = SuccDIList.DI[IsInsert];
+      assert(SuccList.back() == U.getTo());
+      SuccList.pop_back();
+      if (SuccList.empty() && SuccDIList.DI[!IsInsert].empty())
+        PhantomSucc.erase(U.getFrom());
 
-    auto &PredDIList = Pred[U.getTo()];
-    auto &PredList = PredDIList.DI[IsInsert];
-    assert(PredList.back() == U.getFrom());
-    PredList.pop_back();
-    if (PredList.empty() && PredDIList.DI[!IsInsert].empty())
-      Pred.erase(U.getTo());
+      auto &PredDIList = PhantomPred[U.getTo()];
+      auto &PredList = PredDIList.DI[IsInsert];
+      assert(PredList.back() == U.getFrom());
+      PredList.pop_back();
+      if (PredList.empty() && PredDIList.DI[!IsInsert].empty())
+        PhantomPred.erase(U.getTo());
+    } else {
+      auto &SuccDIList = Succ[U.getFrom()];
+      auto &SuccList = SuccDIList.DI[IsInsert];
+      assert(SuccList.back() == U.getTo());
+      SuccList.pop_back();
+      if (SuccList.empty() && SuccDIList.DI[!IsInsert].empty())
+        Succ.erase(U.getFrom());
+
+      auto &PredDIList = Pred[U.getTo()];
+      auto &PredList = PredDIList.DI[IsInsert];
+      assert(PredList.back() == U.getFrom());
+      PredList.pop_back();
+      if (PredList.empty() && PredDIList.DI[!IsInsert].empty())
+        Pred.erase(U.getTo());
+    }
     return U;
   }
 

@@ -915,6 +915,7 @@ struct SemiNCAInfo {
     assert(From && To && "Cannot disconnect nullptrs");
     LLVM_DEBUG(dbgs() << "Deleting edge " << BlockNamePrinter(From) << " -> "
                       << BlockNamePrinter(To) << "\n");
+    LLVM_DEBUG(DT.print(dbgs()));
 
 #if LLVM_ENABLE_ABI_BREAKING_CHECKS
     // Ensure that the edge was in fact deleted from the CFG before informing
@@ -1063,8 +1064,10 @@ struct SemiNCAInfo {
     };
 
     SemiNCAInfo SNCA(BUI);
+
     unsigned LastDFSNum =
         SNCA.runDFS(ToTN->getBlock(), 0, DescendAndCollect, 0);
+
 
     TreeNodePtr MinNode = ToTN;
 
@@ -1091,6 +1094,9 @@ struct SemiNCAInfo {
       return;
     }
 
+
+    LLVM_DEBUG(dbgs() << "Dominator tree before trying to erase subtree leaf by leaf:\n");
+    LLVM_DEBUG(DT.print(dbgs()));
     // Erase the unreachable subtree in reverse preorder to process all children
     // before deleting their parent.
     for (unsigned i = LastDFSNum; i > 0; --i) {
@@ -1177,7 +1183,7 @@ struct SemiNCAInfo {
     for (size_t i = 0; i < BUI.NumLegalized && !BUI.IsRecalculated; ++i)
       ApplyNextUpdate(DT, BUI);
   }
-
+  
   static void ApplyNextUpdate(DomTreeT &DT, BatchUpdateInfo &BUI) {
     // Popping the next update, will move the PreViewCFG to the next snapshot.
     UpdateT CurrentUpdate = BUI.PreViewCFG.popUpdateForIncrementalUpdates();

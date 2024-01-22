@@ -22,9 +22,13 @@
 #include "llvm/IR/Constants.h"
 #include<fstream>
 #include<iostream>
+#include<llvm/ADT/Statistic.h>
+
 //#include<llvm/Transforms/Utils/BasicBlockUtils.h>
 
 #define DEBUG_TYPE "domgrove"
+STATISTIC(NumDomDag, "Number of context sensitive domination relations calls"); 
+STATISTIC(NumDom, "Number of total domination relations calls"); 
 
 namespace llvm {
 void ReplaceInstWithInst(Instruction *From, Instruction *To);
@@ -150,6 +154,7 @@ public:
 
   bool dominates(const DomTreeNodeBase<NodeT> *A,
                  const DomTreeNodeBase<NodeT> *B) const {
+    NumDom++; 
     // A node trivially dominates itself.
     if (B == A)
       return true;
@@ -180,23 +185,25 @@ public:
       }
       anyDom |= dom; 
     }
-    if(!naive && anyDom && not(IsPostDom)){
+    if(!naive && anyDom){
+      NumDomDag++; 
       LLVM_DEBUG(dbgs() << "Context sensitive domination: " << 
         A->getBlock()->getName() << " dominates " <<  
         B->getBlock()->getName() << "\n"); 
+      /*
       std::string fname = llvm::sys::path::filename(
         A->getBlock()->getParent()->getParent()->getSourceFileName()).str(); 
-      /*std::cout << fname << ": " << 
+      std::cout << fname << ": " << 
         A->getBlock()->getName().str() << " dominates " << 
         B->getBlock()->getName().str() << "\n"; 
-			*/
       std::ofstream logfile;
       logfile.open("/tmp/domdag-" + fname, std::ios::out | std::ios::app); 
       logfile << A->getBlock()->getName().str() << " dominates " << 
                  B->getBlock()->getName().str() << "\n"; 
+			*/
     }
 
-    return anyDom; 
+    return naive; 
   }
 
   bool dominates(const NodeT *A, const NodeT *B) const;

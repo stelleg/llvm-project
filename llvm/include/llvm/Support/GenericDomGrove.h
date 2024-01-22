@@ -150,6 +150,18 @@ public:
 
   bool dominates(const DomTreeNodeBase<NodeT> *A,
                  const DomTreeNodeBase<NodeT> *B) const {
+    // A node trivially dominates itself.
+    if (B == A)
+      return true;
+
+    // An unreachable node is dominated by anything.
+    if (!this->isReachableFromEntry(B))
+      return true;
+
+    // And dominates nothing.
+    if (!this->isReachableFromEntry(A))
+      return false;
+
     // A node dominates another iff it dominates for every variant 
 		bool anyDom = DominatorTreeBase<NodeT, IsPostDom>::dominates(A,B);
     LLVM_DEBUG(this->print(dbgs())); 
@@ -174,16 +186,17 @@ public:
         B->getBlock()->getName() << "\n"); 
       std::string fname = llvm::sys::path::filename(
         A->getBlock()->getParent()->getParent()->getSourceFileName()).str(); 
-      std::cout << fname << ": " << 
+      /*std::cout << fname << ": " << 
         A->getBlock()->getName().str() << " dominates " << 
         B->getBlock()->getName().str() << "\n"; 
+			*/
       std::ofstream logfile;
       logfile.open("/tmp/domdag-" + fname, std::ios::out | std::ios::app); 
       logfile << A->getBlock()->getName().str() << " dominates " << 
                  B->getBlock()->getName().str() << "\n"; 
     }
 
-    return naive; 
+    return anyDom; 
   }
 
   bool dominates(const NodeT *A, const NodeT *B) const;

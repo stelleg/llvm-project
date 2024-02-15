@@ -29,6 +29,7 @@
 #define DEBUG_TYPE "domgrove"
 STATISTIC(NumDomDag, "Number of context sensitive domination relations calls"); 
 STATISTIC(NumDom, "Number of total domination relations calls"); 
+STATISTIC(DomDagFailures, "Cases where tree is more precise than dag"); 
 
 namespace llvm {
 void ReplaceInstWithInst(Instruction *From, Instruction *To);
@@ -41,7 +42,10 @@ template <typename NodeT, typename Cond, bool IsPostDom>
 class DominatorGroveBase : public DominatorTreeBase<NodeT, IsPostDom> {
 
 private:
-	SmallVector<std::unique_ptr<SmallVector<std::unique_ptr<DominatorTreeBase<NodeT, IsPostDom>>,2>>,2> bunches;
+  using DomTree = DominatorTreeBase<NodeT, IsPostDom>; 
+  using Bunch = SmallVector<std::unique_ptr<DomTree>>; 
+  using Grove = SmallVector<std::unique_ptr<Bunch>>; 
+	Grove grove;
 
 public:
   using ParentPtr = decltype(std::declval<NodeT*>()->getParent());
@@ -51,12 +55,12 @@ public:
   static constexpr UpdateKind Insert = UpdateKind::Insert;
   static constexpr UpdateKind Delete = UpdateKind::Delete;
 
-	void update() {
+  Grove computeGrove() const { 
     // Construct bunches
     // We add the constraint that NodeT must have a function that returns an
     // optional for a branch condition. For a basic block, this returns a
     // value pointer, which is null if there isn't one
-		bunches.clear();
+    Grove bunches; 
     int found = 0; 
     DenseMap<const Cond*, SmallPtrSet<NodeT *, 2>> m;
     for(auto &dtn : this->DomTreeNodes){
@@ -101,12 +105,6 @@ public:
         for(auto *bb : s){
           if(auto *BB = dyn_cast<BasicBlock>(bb)){
             BranchInst* old = dyn_cast<BranchInst>(BB->getTerminator()); 
-						/*
-            auto oldCopy = BranchInst::Create(old->getSuccessor(0), old->getSuccessor(1), old->getCondition());  // We create a copy because replaceinst will delete this one
-            oldBranches[BB] = oldCopy;  
-            auto tb = BranchInst::Create(old->getSuccessor(0)); 
-            ReplaceInstWithInst(old, tb); 
-						*/	
             if(old->getSuccessor(1) != old->getSuccessor(0)){
               tu.emplace_back(UpdateType(Delete, BB, old->getSuccessor(1))); 
               fu.emplace_back(UpdateType(Delete, BB, old->getSuccessor(0))); 
@@ -114,42 +112,21 @@ public:
           }
         }
 
-/*
-        for(auto *bb : s){
-          if(auto *BB = dyn_cast<BasicBlock>(bb)){
-            BranchInst* old = oldBranches[BB]; 
-            auto oldCopy = BranchInst::Create(old->getSuccessor(0), old->getSuccessor(1), old->getCondition());  // We create a copy because replaceinst will delete this one
-            oldBranches[BB] = oldCopy;  
-            ReplaceInstWithInst(BB->getTerminator(), old); 
-          }
-        }
-
-        for(auto *bb : s){
-          if(auto *BB = dyn_cast<BasicBlock>(bb)){
-            auto fb = BranchInst::Create(oldBranches[BB]->getSuccessor(1)); 
-            auto *t = BB->getTerminator(); 
-            ReplaceInstWithInst(t, fb); 
-            tf->deleteEdge(bb, oldBranches[BB]->getSuccessor(0));
-          }
-        }
-
-        for(auto *bb : s){
-          if(auto *BB = dyn_cast<BasicBlock>(bb)){
-            auto *t = BB->getTerminator();
-            ReplaceInstWithInst(t, oldBranches[BB]); 
-          }
-        }
-				*/
-
 				tt->applyPhantomUpdates(tu);
 				tf->applyPhantomUpdates(fu); 
 
-        auto p = std::make_unique<SmallVector<std::unique_ptr<DominatorTreeBase<NodeT, IsPostDom> >, 2> >();
+        auto p = std::make_unique<Bunch>();
         p->push_back(std::move(tt)); 
         p->push_back(std::move(tf));
         bunches.push_back(std::move(p)); 
       }
     }
+    return bunches;
+  }
+
+	void update() {
+    //grove.clear(); 
+    //grove = computeGrove(); 
 	}
 
   bool dominates(const DomTreeNodeBase<NodeT> *A,
@@ -167,11 +144,13 @@ public:
     if (!this->isReachableFromEntry(A))
       return false;
 
+    Grove lgrove = computeGrove(); 
+
     // A node dominates another iff it dominates for every variant 
-		bool anyDom = DominatorTreeBase<NodeT, IsPostDom>::dominates(A,B);
+		bool anyDom = false;
     LLVM_DEBUG(this->print(dbgs())); 
-    bool naive = anyDom; 
-    for(auto& b : bunches){
+    bool naive = DominatorTreeBase<NodeT, IsPostDom>::dominates(A,B);; 
+    for(auto& b : lgrove){
       bool dom = true;
       bool istrue = true; 
       for(auto &t : *b){
@@ -185,6 +164,9 @@ public:
       }
       anyDom |= dom; 
     }
+
+    if(lgrove.size() > 0 && naive && !anyDom) DomDagFailures++;  
+
     if(!naive && anyDom){
       NumDomDag++; 
       LLVM_DEBUG(dbgs() << "Context sensitive domination: " << 
@@ -203,7 +185,7 @@ public:
 			*/
     }
 
-    return naive; 
+    return naive || anyDom; 
   }
 
   bool dominates(const NodeT *A, const NodeT *B) const;

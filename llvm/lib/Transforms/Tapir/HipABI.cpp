@@ -637,8 +637,8 @@ void HipABI::transformConstants(Function *Fn) {
         GEP->setOperand(GEP->getPointerOperandIndex(), asCast);
         LLVM_DEBUG(dbgs() << "\t\t\t\tnew gep:\n\t\t\t\t  " << *GEP << "\n");
       } else {
-        U->get()->dump();
-        U->getUser()->dump();
+        LLVM_DEBUG(dbgs() << U->get());
+        LLVM_DEBUG(dbgs() << U->getUser()); 
         assert(false && "unexpected use/user of gep.");
       }
     }

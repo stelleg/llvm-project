@@ -2084,6 +2084,8 @@ static Attribute::AttrKind getAttrFromCode(uint64_t Code) {
     return Attribute::ReducerRegister;
   case bitc::ATTR_KIND_REDUCER_UNREGISTER:
     return Attribute::ReducerUnregister;
+  case bitc::ATTR_KIND_KITSUNE_REDUCTION:
+    return Attribute::KitsuneReduction;
   }
 }
 

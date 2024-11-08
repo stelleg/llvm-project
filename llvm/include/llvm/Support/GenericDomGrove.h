@@ -30,6 +30,7 @@
 STATISTIC(NumDomDag, "Number of context sensitive domination relations calls"); 
 STATISTIC(NumDom, "Number of total domination relations calls"); 
 STATISTIC(DomDagFailures, "Cases where tree is more precise than dag"); 
+STATISTIC(NumSharedCond, "Number of cases of shared variables"); 
 
 namespace llvm {
 void ReplaceInstWithInst(Instruction *From, Instruction *To);
@@ -80,6 +81,10 @@ public:
           }
         }
       }
+      // If any blocks don't have a terminator, we're in a broken state and fall back to 
+      if(!bb->getTerminator()){
+        return bunches;
+      }
     }
 
     if(auto bb = dyn_cast<BasicBlock>(this->getRoot())){
@@ -91,7 +96,8 @@ public:
       auto s = c.second; 
       if(s.size() > 1){
         if(auto *cv = dyn_cast<Value>(c.first)){
-          LLVM_DEBUG(dbgs() << "  shared condition variable: " << cv->getName() << "\n");    
+          LLVM_DEBUG(dbgs() << "  shared condition variable: " << *cv << "\n");    
+          NumSharedCond++; 
         }
         auto tt = DominatorTreeBase<NodeT, IsPostDom>::copy(); 
         auto tf = DominatorTreeBase<NodeT, IsPostDom>::copy();
@@ -129,6 +135,23 @@ public:
     //grove = computeGrove(); 
 	}
 
+  bool isReachableFromEntry(const NodeT *A) const {
+    assert(!this->isPostDominator() &&
+           "This is not implemented for post dominators");
+
+    bool naive = DominatorTreeBase<NodeT, IsPostDom>::isReachableFromEntry(A);; 
+    Grove lgrove = computeGrove(); 
+    bool any = false;
+    for(auto &b : lgrove){
+      for(auto &t : *b){
+        any |= t->isReachableFromEntry(A);
+      }
+    }
+    return lgrove.size() > 0 ? any : naive; 
+  }
+
+  bool isReachableFromEntry(const DomTreeNodeBase<NodeT> *A) const { return A; }
+
   bool dominates(const DomTreeNodeBase<NodeT> *A,
                  const DomTreeNodeBase<NodeT> *B) const {
     NumDom++; 
@@ -137,11 +160,11 @@ public:
       return true;
 
     // An unreachable node is dominated by anything.
-    if (!this->isReachableFromEntry(B))
+    if (!isReachableFromEntry(B))
       return true;
 
     // And dominates nothing.
-    if (!this->isReachableFromEntry(A))
+    if (!isReachableFromEntry(A))
       return false;
 
     Grove lgrove = computeGrove(); 
@@ -234,7 +257,6 @@ bool DominatorGroveBase<NodeT, Cond, IsPostDom>::dominates(const NodeT *A,
   return dominates(this->getNode(const_cast<NodeT *>(A)),
                    this->getNode(const_cast<NodeT *>(B)));
 }
-
 
 }
 #undef DEBUG_TYPE

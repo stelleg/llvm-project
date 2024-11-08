@@ -328,7 +328,7 @@ public:
       WL.pop();
       auto *OldN = getNode(n->getBlock());
       for(DomTreeNodeBase<NodeT> *ch : *OldN){
-        auto* CH = dt->createChild(ch->getBlock(), n); 
+        auto* CH = dt->createNode(ch->getBlock(), n); 
         CH->setIDom(n); 
         WL.push(CH); 
       }

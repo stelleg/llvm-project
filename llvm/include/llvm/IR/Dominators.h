@@ -54,6 +54,7 @@ using BBDomTree = DomTreeBase<BasicBlock>;
 using BBPostDomTree = PostDomTreeBase<BasicBlock>;
 
 using BBUpdates = ArrayRef<llvm::cfg::Update<BasicBlock *>>;
+using BBGroveUpdates = ArrayRef<llvm::cfg::Update<BasicBlock *>>;
 
 using BBDomTreeGraphDiff = GraphDiff<BasicBlock *, false>;
 using BBPostDomTreeGraphDiff = GraphDiff<BasicBlock *, true>;

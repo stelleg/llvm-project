@@ -35,6 +35,18 @@ STATISTIC(NumSharedCond, "Number of cases of shared variables");
 namespace llvm {
 void ReplaceInstWithInst(Instruction *From, Instruction *To);
 
+
+// Grove updates can either be standard cfg updates or updates of 
+// condition variables, changing the grove dominance relations
+template<typename NodePtr, typename CondPtr> 
+class GroveUpdate : public cfg::Update<NodePtr> {
+  CondPtr Cond = nullptr; 
+  
+  public:
+    GroveUpdate(NodePtr n, CondPtr c) : Cond(c) {this->From = n;} ;
+    bool isCfgUpdate() { Cond == nullptr; }
+}; 
+
 /// Core dominator grove base class.
 ///
 /// This class is a generic template over graph nodes. It is instantiated for
@@ -51,9 +63,9 @@ private:
 public:
   using ParentPtr = decltype(std::declval<NodeT*>()->getParent());
   using ParentType = std::remove_pointer_t<ParentPtr>;
+  using CondUpdate = GroveUpdate<NodeT, Cond*>; 
   using UpdateType = cfg::Update<NodeT*>;
   using UpdateKind = cfg::UpdateKind;
-  static constexpr UpdateKind Insert = UpdateKind::Insert;
   static constexpr UpdateKind Delete = UpdateKind::Delete;
 
   Grove computeGrove() const { 
@@ -65,7 +77,7 @@ public:
     int found = 0; 
     DenseMap<const Cond*, SmallPtrSet<NodeT *, 2>> m;
     for(auto &dtn : this->DomTreeNodes){
-      auto tn = dtn.second.get();
+      auto tn = dtn.get();
       auto bb = tn ->getBlock();
       if(const Cond* cv = bb->getCond()){
         if(!isa<UndefValue>(cv) && !isa<Constant>(cv)){
@@ -212,6 +224,11 @@ public:
   }
 
   bool dominates(const NodeT *A, const NodeT *B) const;
+
+	void applyUpdates(ArrayRef<CondUpdate> Updates) {
+		DominatorTreeBase<NodeT, IsPostDom>::applyUpdates(Updates); 
+		update();
+	}
 
 	void applyUpdates(ArrayRef<UpdateType> Updates) {
 		DominatorTreeBase<NodeT, IsPostDom>::applyUpdates(Updates); 

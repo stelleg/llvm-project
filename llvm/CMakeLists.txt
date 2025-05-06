@@ -270,6 +270,7 @@ endif ()
 #
 set(KITSUNE_CUDA_ENABLED OFF CACHE INTERNAL "Enable the cuda tapir target" FORCE)
 set(KITSUNE_HIP_ENABLED OFF CACHE INTERNAL "Enable the hip tapir target" FORCE)
+set(KITSUNE_GPU_ENABLED OFF CACHE INTERNAL "Enable the gpu tapir target" FORCE)
 set(KITSUNE_OPENCILK_ENABLED OFF CACHE INTERNAL "Enable the opencilk tapir target" FORCE)
 set(KITSUNE_OPENMP_ENABLED OFF CACHE INTERNAL "Enable the openmp tapir target" FORCE)
 set(KITSUNE_QTHREADS_ENABLED OFF CACHE INTERNAL "Enable the qthreads tapir target" FORCE)
@@ -279,12 +280,12 @@ set(KITSUNE_REALM_ENABLED OFF CACHE INTERNAL "Enable the realm tapir target" FOR
 # back into this list. These targets have not been tested in a while and have
 # probably bit-rotted. Enabling them will raise a configure-time error.
 set(KITSUNE_ALL_TAPIR_TARGETS
-  "cuda;hip;opencilk"
+  "cuda;hip;gpu;opencilk"
   CACHE STRING
   "All known Tapir targets.")
 
 set(KITSUNE_DEFAULT_TAPIR_TARGETS
-  "cuda;hip;opencilk"
+  "cuda;gpu;opencilk"
   CACHE STRING
   "The Tapir targets that are built by default if targets are not explicitly specified.")
 

@@ -4730,7 +4730,7 @@ def ClspvLibclcBuiltin: InheritableAttr {
 def KitsuneReduction : InheritableAttr {
   let Spellings = [Clang<"kitsune_reduction">];
   let Subjects = SubjectList<[FunctionLike]>;
-  let Documentation = [StrandMallocDocs];
+  let Documentation = [TapirRTDocs];
 }
 
 def TapirTarget : StmtAttr {
@@ -4751,9 +4751,9 @@ def TapirTarget : StmtAttr {
                              ErrorDiag, "'parallel' statements">;
   let Args = [
     EnumArgument<"TapirTargetAttrType", "TapirTargetAttrTy", /*is_string=*/ true,
-                 ["none", "serial", "cuda", "hip", "opencilk", "openmp",
+                 ["none", "serial", "cuda", "hip", "gpu", "opencilk", "openmp",
                   "qthreads", "realm"],
-                 ["None", "Serial", "Cuda", "Hip", "OpenCilk", "OpenMP",
+                 ["None", "Serial", "Cuda", "Hip", "GPU", "OpenCilk", "OpenMP",
                   "Qthreads", "Realm"],
                  0>
   ];

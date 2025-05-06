@@ -34,6 +34,7 @@
 #include "llvm/Linker/Linker.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/ModRef.h"
+#include "llvm/Support/Process.h"
 #include "llvm/Transforms/Tapir/Outline.h"
 #include "llvm/Transforms/Tapir/LoweringUtils.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"

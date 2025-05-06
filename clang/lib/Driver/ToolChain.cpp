@@ -1658,6 +1658,8 @@ void ToolChain::AddKitsunePreprocessorArgs(const ArgList &Args,
       ExtractArgsFromString(KITSUNE_HIP_EXTRA_PREPROCESSOR_FLAGS, CmdArgs,
                             Args);
       break;
+    case llvm::TapirTargetID::GPU:
+      break;
     case llvm::TapirTargetID::OpenCilk:
       ExtractArgsFromString(KITSUNE_OPENCILK_EXTRA_PREPROCESSOR_FLAGS, CmdArgs,
                             Args);
@@ -1705,6 +1707,8 @@ void ToolChain::AddKitsuneCompilerArgs(const ArgList& Args,
       break;
     case llvm::TapirTargetID::Hip:
       ExtractArgsFromString(KITSUNE_HIP_EXTRA_COMPILER_FLAGS, CmdArgs, Args);
+      break;
+    case llvm::TapirTargetID::GPU:
       break;
     case llvm::TapirTargetID::OpenCilk:
       ExtractArgsFromString(KITSUNE_OPENCILK_EXTRA_COMPILER_FLAGS, CmdArgs,
@@ -1773,6 +1777,8 @@ void ToolChain::AddKitsuneLinkerArgs(const ArgList &Args,
 
     case llvm::TapirTargetID::Hip:
       ExtractArgsFromString(KITSUNE_HIP_EXTRA_LINKER_FLAGS, CmdArgs, Args);
+      break;
+    case llvm::TapirTargetID::GPU:
       break;
 
     case llvm::TapirTargetID::OpenCilk: {

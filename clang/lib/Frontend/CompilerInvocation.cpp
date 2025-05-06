@@ -4499,6 +4499,10 @@ bool CompilerInvocation::ParseKitsuneArgs(KitsuneOptions &Opts, ArgList &Args,
       if (!KITSUNE_HIP_ENABLED)
         Diags.Report(diag::err_drv_kitsune_hip_target_disabled);
       break;
+    case llvm::TapirTargetID::GPU:
+      if (!KITSUNE_GPU_ENABLED)
+        Diags.Report(diag::err_drv_kitsune_gpu_target_disabled);
+      break;
     case llvm::TapirTargetID::OpenCilk:
       if (!KITSUNE_OPENCILK_ENABLED)
         Diags.Report(diag::err_drv_kitsune_opencilk_target_disabled);

@@ -28,6 +28,7 @@ std::optional<TapirTargetID> clang::parseTapirTarget(const opt::ArgList &Args) {
         .Case("serial", TapirTargetID::Serial)
         .Case("cuda", TapirTargetID::Cuda)
         .Case("hip", TapirTargetID::Hip)
+        .Case("gpu", TapirTargetID::GPU)
         .Case("opencilk", TapirTargetID::OpenCilk)
         .Case("openmp", TapirTargetID::OpenMP)
         .Case("qthreads", TapirTargetID::Qthreads)

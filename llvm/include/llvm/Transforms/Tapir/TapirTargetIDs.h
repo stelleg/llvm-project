@@ -24,6 +24,7 @@ enum class TapirTargetID {
   Serial,   // Lower to serial projection
   Cuda,     // Lower to Cuda ABI
   Hip,      // Lower to the Hip (AMD GPU) ABI
+  GPU,      // Lower to the GPU ABI
   Lambda,   // Lower to generic Lambda ABI
   OMPTask,  // Lower to OpenMP task ABI
   OpenCilk, // Lower to OpenCilk ABI

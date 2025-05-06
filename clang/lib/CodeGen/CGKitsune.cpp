@@ -111,6 +111,8 @@ CodeGenFunction::GetTapirTargetAttr(ArrayRef<const Attr *> Attrs) {
         return llvm::TapirTargetID::Cuda;
       case TapirTargetAttr::Hip:
         return llvm::TapirTargetID::Hip;
+      case TapirTargetAttr::GPU:
+        return llvm::TapirTargetID::GPU; 
       case TapirTargetAttr::OpenCilk:
         return llvm::TapirTargetID::OpenCilk;
       case TapirTargetAttr::OpenMP:

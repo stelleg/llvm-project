@@ -852,6 +852,8 @@ def err_drv_kitsune_cuda_target_disabled: Error<
   "tapir target 'cuda' was not enabled when kitsune was built">;
 def err_drv_kitsune_hip_target_disabled: Error<
   "tapir target 'hip' was not enabled when kitsune was built">;
+def err_drv_kitsune_gpu_target_disabled: Error<
+  "tapir target 'gpu' was not enabled when kitsune was built">;
 def err_drv_kitsune_opencilk_target_disabled: Error<
   "tapir target 'opencilk' was not enabled when kitsune was built">;
 def err_drv_kitsune_openmp_target_disabled : Error<

@@ -320,6 +320,9 @@ std::string PTXVersionFromCudaVersion() {
           .Case("12.3", "+ptx83")
           .Case("12.4", "+ptx83")
           .Case("12.5", "+ptx83")
+          .Case("12.6", "+ptx83")
+          .Case("12.7", "+ptx83")
+          .Case("12.8", "+ptx83")
           .Default("");
 
   if (PTXVersionStr == "") {

@@ -35,6 +35,8 @@ raw_ostream &operator<<(raw_ostream &os, const TapirTargetID &Target) {
     return os << "cuda";
   case TapirTargetID::Hip:
     return os << "hip";
+  case TapirTargetID::GPU:
+    return os << "gpu";
   case TapirTargetID::Lambda:
     return os << "lambda";
   case TapirTargetID::OMPTask:

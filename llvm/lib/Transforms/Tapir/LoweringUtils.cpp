@@ -31,6 +31,7 @@
 #include "llvm/Transforms/Tapir/Outline.h"
 #include "llvm/Transforms/Tapir/QthreadsABI.h"
 #include "llvm/Transforms/Tapir/RealmABI.h"
+#include "llvm/Transforms/Tapir/GPUABI.h"
 #include "llvm/Transforms/Tapir/SerialABI.h"
 #include "llvm/Transforms/Tapir/TapirLoopInfo.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
@@ -62,6 +63,11 @@ TapirTarget *llvm::getTapirTargetFromID(Module &M, TapirTargetID ID) {
   case TapirTargetID::Hip:
     return new HipABI(M);
 #endif // KITSUNE_HIP_ENABLED
+
+#if KITSUNE_GPU_ENABLED
+  case TapirTargetID::GPU:
+    return new GPUABI(M);
+#endif
 
     // For now, these targets are always built, but that might change.
   case TapirTargetID::Lambda:

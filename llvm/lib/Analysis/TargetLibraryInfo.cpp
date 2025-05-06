@@ -1393,6 +1393,7 @@ void TargetLibraryInfoImpl::addTapirTargetLibraryFunctions(
   case TapirTargetID::Serial:
   case TapirTargetID::Cuda:
   case TapirTargetID::Hip:
+  case TapirTargetID::GPU:
   case TapirTargetID::Lambda:
   case TapirTargetID::OMPTask:
   case TapirTargetID::OpenMP:

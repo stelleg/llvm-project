@@ -159,31 +159,6 @@ public:
           const TapirTargetOptions &TTO);
   ~HipLoop();
 
-  /// Prepares the set HelperArgs of function arguments for the outlined helper
-  /// function Helper for a Tapir loop.  Also prepares the list HelperInputs of
-  /// input values passed to a call to Helper.  HelperArgs and HelperInputs are
-  /// derived from the loop-control arguments LCArgs and loop-control inputs
-  /// LCInputs for the Tapir loop, as well the set TLInputsFixed of arguments to
-  /// the task underlying the Tapir loop.
-  void setupLoopOutlineArgs(Function &F, ValueSet &HelperArgs,
-                            SmallVectorImpl<Value *> &HelperInputs,
-                            ValueSet &InputSet,
-                            const SmallVectorImpl<Value *> &LCArgs,
-                            const SmallVectorImpl<Value *> &LCInputs,
-                            const ValueSet &TLInputsFixed) override;
-
-  /// Returns an integer identifying the index of the helper-function argument
-  /// in Args that specifies the starting iteration number.  This return value
-  /// must complement the behavior of setupLoopOutlineArgs().
-  unsigned getIVArgIndex(const Function &F,
-                         const ValueSet &Args) const override;
-
-  /// Returns an integer identifying the index of the helper-function argument
-  /// in Args that specifies the ending iteration number.  This return value
-  /// must complement the behavior of setupLoopOutlineArgs().
-  unsigned getLimitArgIndex(const Function &F,
-                            const ValueSet &Args) const override;
-
   /// Process the TapirLoop before it is outlined -- just prior to the
   /// outlining occurs.  This allows the VMap and related details to be
   /// customized prior to outlining related operations (e.g. cloning of
@@ -198,8 +173,6 @@ public:
   /// Processes a call to an outlined Function Helper for a Tapir loop.
   void processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
                                DominatorTree &DT) override;
-
-  void remapData(ValueToValueMapTy &VMap) override final;
 
 private:
   Value *emitWorkItemId(IRBuilder<> &Builder, int ItemIndex);
@@ -219,8 +192,6 @@ private:
   FunctionCallee HipWorkGroupIdFn;
   FunctionCallee HipWorkGroupIdXFn, HipWorkGroupIdYFn, HipWorkGroupIdZFn;
   FunctionCallee HipBlockDimFn;
-
-  SmallVector<Value *, 5> OrderedInputs;
 
   /// The GlobalValue's used in the loop that is being outlined. This includes
   /// functions, global variables, aliases and ifunc's.

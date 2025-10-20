@@ -144,8 +144,6 @@ private:
   // Cuda/PTX grid dimensions access.
   Function *CUGridDimX = nullptr, *CUGridDimY = nullptr, *CUGridDimZ = nullptr;
 
-  SmallVector<Value *, 5> OrderedInputs;
-
   /// The GlobalValue's used in the loop that is being outlined. This includes
   /// functions, global variables, aliases and ifunc's.
   std::set<GlobalValue *> UsedGlobalValues;
@@ -161,25 +159,11 @@ public:
            const TapirTargetOptions &TTOpts);
   ~CudaLoop();
 
-  void setupLoopOutlineArgs(Function &F, ValueSet &HelperArgs,
-                            SmallVectorImpl<Value *> &HelperInputs,
-                            ValueSet &InputSet,
-                            const SmallVectorImpl<Value *> &LCArgs,
-                            const SmallVectorImpl<Value *> &LCInputs,
-                            const ValueSet &TLInputsFixed) override final;
-
-  unsigned getIVArgIndex(const Function &F,
-                         const ValueSet &Args) const override final;
-
-  unsigned getLimitArgIndex(const Function &F,
-                            const ValueSet &Args) const override final;
-
   void preProcessTapirLoop(TapirLoopInfo &TL, ValueToValueMapTy &VMap) override;
   void postProcessOutline(TapirLoopInfo &TL, TaskOutlineInfo &Out,
                           ValueToValueMapTy &VMap) override final;
   void processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
                                DominatorTree &DT) override final;
-  void remapData(ValueToValueMapTy &VMap) override final;
 };
 
 } // namespace llvm

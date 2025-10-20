@@ -32,7 +32,13 @@
 ; RUN:     | FileCheck %s --check-prefix=O2
 ;
 ; O2-NOT: = phi i64
-; O2: define {{.+}} @__kithip_{{.+}}(i64 {{.*}}%[[UB:[^,]+]], i64 {{[^,]+}}, i64 {{[^,]+}}, ptr {{.*}}%[[BUF:[^,]+]], i64 {{.*}}%[[N:[^)]+]]) {{.*}}#[[ATTRS:[0-9]+]]
+; O2: define {{.+}} @__kithip_{{[^(]+}}(
+; O2-SAME: i64 {{[^%]*}}%[[LB:[^,]+]],
+; O2-SAME: i64 {{[^%]*}}%[[UB:[^,]+]],
+; O2-SAME: i64 {{[^%]*}}%[[GRAINSIZE:[^,]+]],
+; O2-SAME: ptr {{[^%]*}}%[[BUF:[^,]+]],
+; O2-SAME: i64 {{[^%]*}}%[[N:[^)]+]])
+; O2-SAME: {{.*}}#[[ATTRS:[0-9]+]]
 ; O2-NEXT: [[BBENTRY:.+]]:
 ; O2-NEXT: %[[BUFCST:.+]] = addrspacecast ptr %[[BUF]] to ptr addrspace(1)
 ; O2-NEXT: %[[WITEM:.+]] = {{.*}}call i32 @llvm.amdgcn.workitem.id.x()

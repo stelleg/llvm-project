@@ -198,78 +198,6 @@ CudaLoop::~CudaLoop() {
                     << KernelName << "'.\n");
 }
 
-void CudaLoop::setupLoopOutlineArgs(Function &F, ValueSet &HelperArgs,
-                                    SmallVectorImpl<Value *> &HelperInputs,
-                                    ValueSet &InputSet,
-                                    const SmallVectorImpl<Value *> &LCArgs,
-                                    const SmallVectorImpl<Value *> &LCInputs,
-                                    const ValueSet &TLInputsFixed) {
-  LLVM_DEBUG(dbgs() << "debug[cuabi]: setting up loop outline arguments...\n");
-
-  // Add the loop control inputs -- the first parameter defines the extent of
-  // the index space (the number of threads to launch).
-  {
-    Argument *EndArg = cast<Argument>(LCArgs[1]);
-    EndArg->setName("runSize");
-    HelperArgs.insert(EndArg);
-
-    Value *InputVal = LCInputs[1];
-    HelperInputs.push_back(InputVal);
-    InputSet.insert(InputVal);
-  }
-
-  // The second parameter defines the start of the index space.
-  {
-    Argument *StartArg = cast<Argument>(LCArgs[0]);
-    StartArg->setName("runStart");
-    HelperArgs.insert(StartArg);
-
-    Value *InputVal = LCInputs[0];
-    HelperInputs.push_back(InputVal);
-    InputSet.insert(InputVal);
-  }
-
-  // The third parameter defines the grain size, if it is not constant.
-  if (!isa<ConstantInt>(LCInputs[2])) {
-    Argument *GrainsizeArg = cast<Argument>(LCArgs[2]);
-    GrainsizeArg->setName("grainSize");
-    HelperArgs.insert(GrainsizeArg);
-
-    Value *InputVal = LCInputs[2];
-    HelperInputs.push_back(InputVal);
-    InputSet.insert(InputVal);
-  }
-
-  // Add the loop-centric kernel parameters (i.e., variables/arrays
-  // used in the loop body).
-  LLVM_DEBUG(dbgs() << "  - adding loop-centric kernel arguments...\n");
-  for (Value *V : TLInputsFixed) {
-    HelperArgs.insert(V);
-    HelperInputs.push_back(V);
-    LLVM_DEBUG(dbgs() << "    - arg: " << V->getName() << "\n");
-  }
-
-  LLVM_DEBUG(dbgs() << "  - adding helper kernel arguments...\n");
-  for (Value *V : HelperInputs) {
-    OrderedInputs.push_back(V);
-    LLVM_DEBUG(dbgs() << "    - helper arg: " << V->getName() << "\n");
-  }
-
-  LLVM_DEBUG(dbgs() << "  - done.\n");
-}
-
-unsigned CudaLoop::getIVArgIndex(const Function &F,
-                                 const ValueSet &Args) const {
-  // The argument for the primary induction variable is the second input.
-  return 1;
-}
-
-unsigned CudaLoop::getLimitArgIndex(const Function &F,
-                                    const ValueSet &Args) const {
-  // The argument for the loop limit is the first input.
-  return 0;
-}
-
 void CudaLoop::preProcessTapirLoop(TapirLoopInfo &TL, ValueToValueMapTy &VMap) {
   LLVM_DEBUG(dbgs() << "debug[cuabi]: -preprocessing loop for kernel '"
                     << KernelName << "'.\n");
@@ -378,23 +306,19 @@ void CudaLoop::postProcessOutline(TapirLoopInfo &TLI, TaskOutlineInfo &Out,
   // loops use canonical induction variables, valid iterations range from 0 to
   // the loop limit with stride 1. The End argument encodes the loop limit. Get
   // end and grainsize arguments
-  Argument *End;
-  Value *Grainsize;
-  {
-    // TODO: We only support a grain size of 1 right now. Not clear if this
-    // could be a future optimization but strip mining on our current tests only
-    // results in degraded performance...
-    auto OutlineArgsIter = KernelF->arg_begin();
-    // End argument is the first LC arg.
-    End = &*OutlineArgsIter++;
 
-    // Get the grainsize value, which is either constant or the third LC arg.
-    // if (unsigned ConstGrainsize = TLI.getGrainsize())
-    //  Grainsize = ConstantInt::get(PrimaryIV->getType(), ConstGrainsize);
-    // else
-    Grainsize =
-        ConstantInt::get(PrimaryIV->getType(), DefaultGrainSize.getValue());
-  }
+  // End argument is always the second argument in the kernel function.
+  Argument *End = KernelF->getArg(1);
+
+  // Get the grainsize value, which is either constant or the third LC arg.
+  // TODO: We only support a grain size of 1 right now. Not clear if this
+  // could be a future optimization but strip mining on our current tests only
+  // results in degraded performance.
+  // if (unsigned ConstGrainsize = TLI.getGrainsize())
+  //  Grainsize = ConstantInt::get(PrimaryIV->getType(), ConstGrainsize);
+  // else
+  Value *Grainsize =
+      ConstantInt::get(PrimaryIV->getType(), DefaultGrainSize.getValue());
 
   IRBuilder<> B(Entry->getTerminator());
 
@@ -433,14 +357,6 @@ void CudaLoop::postProcessOutline(TapirLoopInfo &TLI, TaskOutlineInfo &Out,
   ClonedCond->setOperand(TripCountIdx, ThreadEnd);
 }
 
-void CudaLoop::remapData(ValueToValueMapTy &VMap) {
-  for (auto &V : OrderedInputs) {
-    if (auto MappedV = VMap[V]) {
-      V = MappedV;
-    }
-  }
-}
-
 void CudaLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
                                        DominatorTree &DT) {
   LLVM_DEBUG(dbgs() << "cudaloop: processing outlined loop call...\n"
@@ -468,12 +384,13 @@ void CudaLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
   TapirLoopHints Hints(TL.getLoop());
   Value *TPB = ConstantInt::get(Int32Ty, Hints.getThreadsPerBlock());
 
-  BasicBlock *RCBB = TOI.ReplCall->getParent();
-  BasicBlock *NewBB = RCBB->splitBasicBlock(TOI.ReplCall);
+  CallBase* CallOutlined = cast<CallBase>(TOI.ReplCall);
+  BasicBlock *RCBB = CallOutlined->getParent();
+  BasicBlock *NewBB = RCBB->splitBasicBlock(CallOutlined);
   IRBuilder<> Builder(&NewBB->front());
 
   // Deal with type mismatches for the trip count.
-  Value *TripCount = OrderedInputs[0];
+  Value *TripCount = CallOutlined->getArgOperand(1);
   if (TripCount->getType() != Int64Ty)
     TripCount = Builder.CreateSExtOrBitCast(TripCount, Int64Ty, "cast.tc");
 
@@ -485,7 +402,7 @@ void CudaLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
       Builder.CreateIntrinsic(PtrTy, Intrinsic::kit_thread_stream, {CTT});
   std::vector<Value *> Args = {CTT, EmbFB,  KName,     TripCount,
                                TPB, KProps, CudaStream};
-  for (Value *Inp : OrderedInputs)
+  for (Value *Inp : CallOutlined->args())
     Args.push_back(Inp);
 
   // TODO: We should probably have the launch and sync kitsune intrinsics take
@@ -506,7 +423,7 @@ void CudaLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
   // the global again).
   copyNonConstGlobalsDToH(UsedGlobalValues, TTID::Cuda, M, Builder);
 
-  TOI.ReplCall->eraseFromParent();
+  CallOutlined->eraseFromParent();
   LLVM_DEBUG(dbgs() << "*** finished processing outlined call.\n");
 }
 

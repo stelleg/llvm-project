@@ -6,7 +6,11 @@
 ; RUN:     | %kit-mbc -S \
 ; RUN:     | FileCheck %s
 ;
-; CHECK: define {{.+}}(i64 {{[^%]*}}%[[UB:[^,]+]], {{.+}}) #[[ATTRS:[0-9]+]]
+; CHECK: define {{.+}}(
+; CHECK-SAME: i64 {{[^%]*}}%[[LB:[^,]+]],
+; CHECK-SAME: i64 {{[^%]*}}%[[UB:[^,]+]],
+; CHECK-SAME: i64 {{[^)]+}})
+; CHECK-SAME: #[[ATTRS:[0-9]+]]
 ; CHECK: %[[WITEM:.+]] = {{.*}}call i32 @llvm.amdgcn.workitem.id.x()
 ; CHECK: %[[TID:.+]] = zext i32 %[[WITEM]] to i64
 ; CHECK: %[[BDIM:.+]] = {{.*}}call i64 @__ockl_get_local_size(i32 0)

@@ -32,7 +32,13 @@
 ; RUN:     | FileCheck %s --check-prefix=O2
 ;
 ; O2-NOT: = phi i64
-; O2: define {{.+}} @__kitcu_{{.+}}(i64 {{.*}}%[[UB:[^,]+]], i64 {{[^,]+}}, i64 {{[^,]+}}, ptr {{.*}}%[[BUF:[^,]+]], i64 {{.*}}%[[N:[^)]+]]) {{.*}}#[[ATTRS:[0-9]+]]
+; O2: define {{.+}} @__kitcu_{{[^(]+}}(
+; O2-SAME: i64 {{[^%]*}}%[[LB:[^,]+]],
+; O2-SAME: i64 {{[^%]*}}%[[UB:[^,]+]],
+; O2-SAME: i64 {{[^%]*}}%[[GRAINSIZE:[^,]+]],
+; O2-SAME: ptr {{[^%]*}}%[[BUF:[^,]+]],
+; O2-SAME: i64 {{[^%]*}}%[[N:[^)]+]])
+; O2-SAME: {{.*}}#[[ATTRS:[0-9]+]]
 ; O2-NEXT: [[BBENTRY:.+]]:
 ; O2-NEXT: %[[TID:.+]] = tail call {{(range.+ )?}}i32 @llvm.nvvm.read.ptx.sreg.tid.x()
 ; O2-NEXT: %[[BIDX:.+]] = tail call {{(range.+ )?}}i32 @llvm.nvvm.read.ptx.sreg.ctaid.x()

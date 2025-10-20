@@ -6,7 +6,11 @@
 ; RUN:     | %kit-mbc -S \
 ; RUN:     | FileCheck %s
 ;
-; CHECK: define {{.+}}(i64 {{[^%]*}}%[[UB:[^,]+]], {{.+}}) #[[ATTRS:[0-9]+]]
+; CHECK: define {{[^(]+}}(
+; CHECK-SAME: i64 {{[^%]*}}%[[LB:[^,]+]],
+; CHECK-SAME: i64 {{[^%]*}}%[[UB:[^,]+]],
+; CHECK-SAME: i64 {{[^)]+}})
+; CHECK-SAME: #[[ATTRS:[0-9]+]]
 ; CHECK: %[[TID:.+]] = {{.*}}call i32 @llvm.nvvm.read.ptx.sreg.tid.x()
 ; CHECK: %[[BIDX:.+]] = {{.*}}call i32 @llvm.nvvm.read.ptx.sreg.ctaid.x()
 ; CHECK: %[[BDIM:.+]] = {{.*}}call i32 @llvm.nvvm.read.ptx.sreg.ntid.x()

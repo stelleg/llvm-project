@@ -28,8 +28,8 @@
 ; These are followed by a variable number of arguments that are to be passed to
 ; the kernel being launched. These are typically in the order
 ;
-;   - trip count
 ;   - start index
+;   - trip count
 ;   - grain size
 ;   - ...
 ;
@@ -44,8 +44,8 @@
 ; CHECK-SAME: i32 0,
 ; CHECK-SAME: ptr {{.*}}@[[G_KERNEL_PROPS]],
 ; CHECK-SAME: ptr %[[STREAM]],
-; CHECK-SAME: i64 %n,
 ; CHECK-SAME: i64 0,
+; CHECK-SAME: i64 %n,
 ; CHECK-SAME: i64 1,
 ; CHECK-SAME: ptr %c,
 ; CHECK-SAME: i64 %n

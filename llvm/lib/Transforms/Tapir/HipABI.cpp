@@ -221,75 +221,6 @@ HipLoop::HipLoop(Module &M, Module &KM, StringRef Name,
 
 HipLoop::~HipLoop() { /* no-op */ }
 
-// TODO: Can we also transform the arguments into a different address space here
-// and avoid our use of 'mutate' elsewhere in the code?
-void HipLoop::setupLoopOutlineArgs(Function &F, ValueSet &HelperArgs,
-                                   SmallVectorImpl<Value *> &HelperInputs,
-                                   ValueSet &InputSet,
-                                   const SmallVectorImpl<Value *> &LCArgs,
-                                   const SmallVectorImpl<Value *> &LCInputs,
-                                   const ValueSet &TLInputsFixed) {
-  LLVM_DEBUG(dbgs() << "\n\n"
-                    << "hipabi: SETTING UP LOOP OUTLINE ARGUMENTS FOR '"
-                    << F.getName() << "()'.\n");
-
-  // Add the loop control inputs -- the first parameter defines the extent of
-  // the index space.
-  {
-    Argument *EndArg = cast<Argument>(LCArgs[1]);
-    EndArg->setName(".kern.input_size"); // nice for debugging...
-    HelperArgs.insert(EndArg);
-
-    Value *InputVal = LCInputs[1];
-    HelperInputs.push_back(InputVal);
-    InputSet.insert(InputVal);
-  }
-
-  // The second parameter defines the start of the index space.
-  {
-    Argument *StartArg = cast<Argument>(LCArgs[0]);
-    StartArg->setName(".kern.start_idx");
-    HelperArgs.insert(StartArg);
-
-    Value *InputVal = LCInputs[0];
-    HelperInputs.push_back(InputVal);
-    InputSet.insert(InputVal);
-  }
-
-  // The third parameter defines the grain size, if it is not constant.
-  if (!isa<ConstantInt>(LCInputs[2])) {
-    Argument *GrainsizeArg = cast<Argument>(LCArgs[2]);
-    GrainsizeArg->setName(".kern.grain_size");
-    HelperArgs.insert(GrainsizeArg);
-
-    Value *InputVal = LCInputs[2];
-    HelperInputs.push_back(InputVal);
-    InputSet.insert(InputVal);
-  }
-
-  // Add the loop-centric kernel parameters (i.e., variables/arrays
-  // used in the loop body).
-  for (Value *V : TLInputsFixed) {
-    HelperArgs.insert(V);
-    HelperInputs.push_back(V);
-  }
-
-  for (Value *V : HelperInputs) {
-    OrderedInputs.push_back(V);
-  }
-}
-
-unsigned HipLoop::getIVArgIndex(const Function &F, const ValueSet &Args) const {
-  // The argument for the primary induction variable is the second input.
-  return 1;
-}
-
-unsigned HipLoop::getLimitArgIndex(const Function &F,
-                                   const ValueSet &Args) const {
-  // The argument for the loop limit is the first input.
-  return 0;
-}
-
 void HipLoop::preProcessTapirLoop(TapirLoopInfo &TL, ValueToValueMapTy &VMap) {
   bool VerboseMode = getOptions().getTapirVerbose();
   if (VerboseMode) {
@@ -429,22 +360,19 @@ void HipLoop::postProcessOutline(TapirLoopInfo &TLI, TaskOutlineInfo &Out,
   // loops use canonical induction variables, valid iterations range from 0 to
   // the loop limit with stride 1. The End argument encodes the limit.
   // Get end and grain size arguments
-  Argument *End;
-  Value *Grainsize;
-  {
-    // TODO: We really only want a grain size of 1 for now...
-    auto OutlineArgsIter = KernelF->arg_begin();
-    // End argument is the first LC arg.
-    End = &*OutlineArgsIter++;
 
-    // Get the grain size value, which is either constant or the third LC
-    // arg.
-    // if (unsigned ConstGrainsize = TLI.getGrainsize())
-    //  Grainsize = ConstantInt::get(PrimaryIV->getType(), ConstGrainsize);
-    // else
-    Grainsize =
-        ConstantInt::get(PrimaryIV->getType(), DefaultGrainSize.getValue());
-  }
+  // End argument is always the second argument in the kernel function.
+  Argument *End = KernelF->getArg(1);
+
+  // Get the grainsize value, which is either constant or the third LC arg.
+  // TODO: We only support a grain size of 1 right now. Not clear if this
+  // could be a future optimization but strip mining on our current tests only
+  // results in degraded performance.
+  // if (unsigned ConstGrainsize = TLI.getGrainsize())
+  //  Grainsize = ConstantInt::get(PrimaryIV->getType(), ConstGrainsize);
+  // else
+  Value *Grainsize =
+      ConstantInt::get(PrimaryIV->getType(), DefaultGrainSize.getValue());
 
   IRBuilder<> Builder(Entry->getTerminator());
 
@@ -500,12 +428,6 @@ void HipLoop::postProcessOutline(TapirLoopInfo &TLI, TaskOutlineInfo &Out,
   ClonedCond->setOperand(TripCountIdx, ThreadEnd);
 }
 
-void HipLoop::remapData(ValueToValueMapTy &VMap) {
-  for (auto &V : OrderedInputs)
-    if (Value *MappedV = VMap[V])
-      V = MappedV;
-}
-
 void HipLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
                                       DominatorTree &DT) {
   LLVM_DEBUG(dbgs() << "hiploop: processing outlined loop call...\n"
@@ -541,12 +463,13 @@ void HipLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
   else
     TPB = ConstantInt::get(Int32Ty, 0);
 
-  BasicBlock *RCBB = TOI.ReplCall->getParent();
-  BasicBlock *NewBB = RCBB->splitBasicBlock(TOI.ReplCall);
+  CallBase *CallOutlined = cast<CallBase>(TOI.ReplCall);
+  BasicBlock *RCBB = CallOutlined->getParent();
+  BasicBlock *NewBB = RCBB->splitBasicBlock(CallOutlined);
   IRBuilder<> Builder(&NewBB->front());
 
   // Deal with type mismatches for the trip count.
-  Value *TripCount = OrderedInputs[0];
+  Value *TripCount = CallOutlined->getArgOperand(1);
   if (TripCount->getType() != Int64Ty)
     TripCount = Builder.CreateSExtOrBitCast(TripCount, Int64Ty, "cast.tc");
 
@@ -558,7 +481,7 @@ void HipLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
       Builder.CreateIntrinsic(PtrTy, Intrinsic::kit_thread_stream, {CTT});
   std::vector<Value *> Args = {CTT, EmbFB,  KName,    TripCount,
                                TPB, KProps, HipStream};
-  for (Value *Inp : OrderedInputs)
+  for (Value *Inp : CallOutlined->args())
     Args.push_back(Inp);
 
   // TODO: We should probably have the launch and sync kitsune intrinsics take
@@ -579,7 +502,7 @@ void HipLoop::processOutlinedLoopCall(TapirLoopInfo &TL, TaskOutlineInfo &TOI,
   // the global again).
   copyNonConstGlobalsDToH(UsedGlobalValues, TTID::Hip, M, Builder);
 
-  TOI.ReplCall->eraseFromParent();
+  CallOutlined->eraseFromParent();
   LLVM_DEBUG(dbgs() << "*** finished processing outlined call.\n");
 }
 

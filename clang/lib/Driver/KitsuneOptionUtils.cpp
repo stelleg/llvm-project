@@ -335,6 +335,7 @@ bool clang::parseKitsuneArgs(KitsuneOptions &kitOpts, const char *argv0,
 
   kitOpts.setKitsuneFrontend(IsKitsuneFrontend(argv0));
   kitOpts.setStripmineLoops(args.hasArg(OPT_fstripmine));
+  kitOpts.setPrintBeforeFirst(args.hasArg(OPT_print_before_first));
 
   kitOpts.setTapirVerbose(args.hasArg(OPT_tapir_verbose));
   kitOpts.setKitrtVerbose(args.hasArg(OPT_kitrt_verbose));

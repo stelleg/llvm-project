@@ -1053,6 +1053,9 @@ void CodeGenAction::runOptimizationPipeline(llvm::raw_pwrite_stream &os) {
     return;
   }
 
+  if (kitsuneOpts.hasTTID() && kitsuneOpts.getPrintBeforeFirst())
+    llvm::errs() << *llvmModule << "\n";
+
   // Run the passes.
   mpm.run(*llvmModule, mam);
 

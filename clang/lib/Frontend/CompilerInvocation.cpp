@@ -4849,6 +4849,9 @@ void CompilerInvocationBase::GenerateKitsuneArgs(const KitsuneOptions &Opts,
 
   if (Opts.getStripmineLoops())
     GenerateArg(Consumer, OPT_fstripmine);
+
+  if (Opts.getPrintBeforeFirst())
+    GenerateArg(Consumer, OPT_print_before_first);
 }
 
 bool CompilerInvocation::CheckKitsuneArgs(const ArgList &Args,

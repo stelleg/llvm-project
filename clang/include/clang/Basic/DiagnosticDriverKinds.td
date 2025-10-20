@@ -901,6 +901,9 @@ def err_drv_unsupported_option_argument_for_frontend : Error<
 def err_drv_kitsune_missing_required : Error<
   "missing required option '--%0'">;
 
+def err_drv_kitsune_tapir_required : Error<
+  "--tapir is required with '%0'">;
+
 def err_drv_kitsune_optzns_required : Error<
   "--tapir requires optimization level O1 or higher">;
 def err_drv_kitsune_lto_o2_required : Error<
@@ -944,8 +947,6 @@ def err_drv_opencilk_missing_abi_bitcode: Error<
 
 def err_drv_kitsune_kokkos_disabled : Error<
   "kokkos support was not enabled when kitsune was built">;
-def err_drv_kitsune_kokkos_no_tapir : Error<
-  "--tapir is required with '%0'">;
 
 def err_drv_kitsune_target_not_enabled: Error<
   "tapir target '%0' was not enabled when kitsune was built">;

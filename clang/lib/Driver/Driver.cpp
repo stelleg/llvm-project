@@ -229,12 +229,16 @@ static void CheckKitsuneOptions(const Driver &D, const ArgList &Args,
 
     // If --kokkos is provided, then a tapir target must also be provided.
     if (!Args.hasArg(options::OPT_tapir_EQ)) {
-      D.Diag(diag::err_drv_kitsune_kokkos_no_tapir)
+      D.Diag(diag::err_drv_kitsune_tapir_required)
           << Args.getLastArg(options::OPT_kokkos, options::OPT_kokkos_no_init)
                  ->getSpelling();
       return;
     }
   }
+
+  if (const Arg *A = Args.getLastArg(options::OPT_print_before_first))
+    if (!Args.hasArg(options::OPT_tapir_EQ))
+      D.Diag(diag::err_drv_kitsune_tapir_required) << A->getSpelling();
 
   // Check that the -ftapir flag has a valid value. This stops us from
   // reporting multiple errors because the flag is examined in several places.

@@ -1216,6 +1216,10 @@ void EmitAssemblyHelper::RunOptimizationPipeline(
     return;
   }
 
+  const KitsuneOptions& kitOpts = CI.getKitsuneOpts();
+  if (kitOpts.hasTTID() && kitOpts.getPrintBeforeFirst())
+    llvm::errs() << *TheModule << "\n";
+
   // Now that we have all of the passes ready, run them.
   {
     PrettyStackTraceString CrashInfo("Optimizer");

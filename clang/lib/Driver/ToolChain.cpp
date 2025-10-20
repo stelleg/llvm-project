@@ -2385,6 +2385,7 @@ void ToolChain::AddKitsuneCompilerArgs(const ArgList &Args,
 
   if (std::optional<TTID> TT = parseTapirTargetIfValid(Args)) {
     Args.AddLastArg(CmdArgs, options::OPT_ffp_contract);
+    Args.AddLastArg(CmdArgs, options::OPT_print_before_first);
     Args.AddLastArg(CmdArgs, options::OPT_kitrt_verbose);
     Args.AddLastArg(CmdArgs, options::OPT_tapir_verbose);
     Args.AddLastArg(CmdArgs, options::OPT_tapir_EQ);

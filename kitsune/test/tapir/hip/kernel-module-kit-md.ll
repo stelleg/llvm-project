@@ -73,7 +73,7 @@ forall.body:
 
 forall.inc:
   %exitcond.not = icmp eq i64 %indvars.iv.next, %n
-  br i1 %exitcond.not, label %forall.sync, label %forall.detach, !llvm.loop !3
+  br i1 %exitcond.not, label %forall.sync, label %forall.detach, !llvm.loop !4
 
 forall.sync:
   sync within %syncreg, label %forall.end
@@ -82,7 +82,8 @@ forall.end:
   ret void
 }
 
-!0 = distinct !{!0, !1, !2}
+!0 = distinct !{!0, !1, !2, !3}
 !1 = !{!"tapir.loop.spawn.strategy", i32 1}
-!2 = !{!"llvm.loop.unroll.disable"}
-!3 = !{!3, !1, !2}
+!2 = !{!"tapir.loop.target", i32 4}
+!3 = !{!"llvm.loop.unroll.disable"}
+!4 = !{!4, !1, !2, !3}

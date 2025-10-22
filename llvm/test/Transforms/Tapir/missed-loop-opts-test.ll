@@ -83,5 +83,6 @@ attributes #1 = { argmemonly mustprogress nounwind willreturn }
 !4 = !{!"long", !5, i64 0}
 !5 = !{!"omnipotent char", !6, i64 0}
 !6 = !{!"Simple C/C++ TBAA"}
-!7 = distinct !{!7, !8}
+!7 = distinct !{!7, !8, !9}
 !8 = !{!"tapir.loop.spawn.strategy", i32 1}
+!9 = !{!"tapir.loop.target", i32 1}

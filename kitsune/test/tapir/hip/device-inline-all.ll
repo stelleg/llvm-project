@@ -48,7 +48,7 @@ define dso_local i64 @sieve(i64 %0) {
   store i8 1, ptr %7, align 1
   %8 = add nuw nsw i64 %6, 1
   %9 = icmp eq i64 %8, 256
-  br i1 %9, label %3, label %5, !llvm.loop !4
+  br i1 %9, label %3, label %5, !llvm.loop !5
 
 10:
   %11 = add nsw i64 %0, -1
@@ -75,13 +75,13 @@ define dso_local i64 @sieve(i64 %0) {
   store i8 0, ptr %27, align 1
   %28 = add nuw nsw i64 %26, %17
   %29 = icmp sgt i64 %28, %0
-  br i1 %29, label %30, label %25, !llvm.loop !5
+  br i1 %29, label %30, label %25, !llvm.loop !6
 
 30:
   %31 = add nuw nsw i64 %17, 1
   %32 = mul nuw nsw i64 %31, %31
   %33 = icmp sgt i64 %32, %0
-  br i1 %33, label %10, label %16, !llvm.loop !6
+  br i1 %33, label %10, label %16, !llvm.loop !7
 
 34:
   %35 = getelementptr inbounds [256 x i8], ptr %2, i64 0, i64 %15
@@ -134,10 +134,11 @@ declare token @llvm.syncregion.start() #1
 
 attributes #0 = { noinline }
 
-!0 = distinct !{!0, !1, !2}
+!0 = distinct !{!0, !1, !2, !3}
 !1 = !{!"tapir.loop.spawn.strategy", i32 1}
-!2 = !{!"llvm.loop.unroll.disable"}
-!3 = !{!"llvm.loop.mustprogress"}
-!4 = !{!4, !3, !2}
-!5 = distinct !{!5, !3, !2}
-!6 = distinct !{!6, !3, !2}
+!2 = !{!"tapir.loop.target", i32 4}
+!3 = !{!"llvm.loop.unroll.disable"}
+!4 = !{!"llvm.loop.mustprogress"}
+!5 = !{!5, !4, !3}
+!6 = distinct !{!6, !4, !3}
+!7 = distinct !{!7, !4, !3}

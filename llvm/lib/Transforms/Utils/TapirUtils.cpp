@@ -2381,8 +2381,8 @@ Task *llvm::getTaskIfTapirLoop(const Loop *L, TaskInfo *TI) {
   if (!T)
     return nullptr;
 
-  // Check that the loop hints require this loop to be outlined.
-  if (!hintsDemandOutlining(Hints))
+  // All tapir loops must have a tapir.loop.target attribute.
+  if (!Hints.getLoopTarget())
     return nullptr;
 
   return T;

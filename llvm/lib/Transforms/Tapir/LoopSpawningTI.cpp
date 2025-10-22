@@ -933,7 +933,7 @@ Task *LoopSpawningImpl::getTaskIfTapirLoop(const Loop *L) {
   const BasicBlock *Preheader = L->getLoopPreheader();
   if (!Preheader) {
     LLVM_DEBUG(dbgs() << "Loop lacks a preheader.\n");
-    if (hintsDemandOutlining(Hints)) {
+    if (Hints.getLoopTarget()) {
       ORE.emit(TapirLoopInfo::createMissedAnalysis(LS_NAME, "NoPreheader", L)
                << "loop lacks a preheader");
       emitMissedWarning(L, Hints, &ORE);
@@ -943,7 +943,7 @@ Task *LoopSpawningImpl::getTaskIfTapirLoop(const Loop *L) {
 
   if (!isa<BranchInst>(Preheader->getTerminator())) {
     LLVM_DEBUG(dbgs() << "Loop preheader is not terminated by a branch.\n");
-    if (hintsDemandOutlining(Hints)) {
+    if (Hints.getLoopTarget()) {
       ORE.emit(TapirLoopInfo::createMissedAnalysis(LS_NAME, "ComplexPreheader",
                                                    L)
           << "loop preheader not terminated by a branch");
@@ -957,7 +957,7 @@ Task *LoopSpawningImpl::getTaskIfTapirLoop(const Loop *L) {
           ->isUnconditional()) {
     LLVM_DEBUG(
         dbgs() << "Loop latch is not terminated by a conditional branch.\n");
-    if (hintsDemandOutlining(Hints)) {
+    if (Hints.getLoopTarget()) {
       ORE.emit(
           TapirLoopInfo::createMissedAnalysis(LS_NAME, "UnexpectedLatch", L)
           << "loop latch not terminated by a conditional branch");
@@ -970,7 +970,7 @@ Task *LoopSpawningImpl::getTaskIfTapirLoop(const Loop *L) {
   Task *T = llvm::getTaskIfTapirLoop(L, &TI);
   if (!T) {
     LLVM_DEBUG(dbgs() << "Loop does not match structure of Tapir loop.\n");
-    if (hintsDemandOutlining(Hints)) {
+    if (Hints.getLoopTarget()) {
       ORE.emit(TapirLoopInfo::createMissedAnalysis(LS_NAME, "NonCanonicalLoop",
                                                    L)
           << "loop does not have the canonical structure of a Tapir loop");

@@ -65,7 +65,8 @@ uselistorder ptr null, { 1, 2, 0 }
 attributes #0 = { nounwind willreturn memory(argmem: readwrite) }
 attributes #1 = { willreturn memory(argmem: readwrite) }
 
-!0 = distinct !{!0, !1, !2, !3}
+!0 = distinct !{!0, !1, !2, !3, !4}
 !1 = !{!"llvm.loop.mustprogress"}
 !2 = !{!"tapir.loop.spawn.strategy", i32 1}
 !3 = !{!"llvm.loop.unroll.disable"}
+!4 = !{!"tapir.loop.target", i32 1}

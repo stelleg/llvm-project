@@ -423,7 +423,7 @@ forall.end15:
 !283 = !{!"omnipotent char", !284, i64 0}
 !284 = !{!"Simple C++ TBAA"}
 !285 = !DILocation(line: 6, column: 32, scope: !273)
-!286 = distinct !{!286, !277, !287, !288, !290}
+!286 = distinct !{!286, !277, !287, !288, !328, !290}
 !287 = !DILocation(line: 7, column: 15, scope: !271)
 !288 = !{!"tapir.loop.spawn.strategy", i32 1}
 !290 = !{!"llvm.loop.unroll.disable"}
@@ -450,7 +450,7 @@ forall.end15:
 !311 = !DILocation(line: 12, column: 5, scope: !301)
 !312 = !DILocation(line: 12, column: 12, scope: !301)
 !313 = !DILocation(line: 11, column: 32, scope: !301)
-!314 = distinct !{!314, !309, !315, !288, !290}
+!314 = distinct !{!314, !309, !315, !288, !328, !290}
 !315 = !DILocation(line: 12, column: 15, scope: !299)
 !316 = !DILocation(line: 11, column: 3, scope: !301)
 !317 = !DILocation(line: 0, scope: !303)
@@ -460,7 +460,8 @@ forall.end15:
 !321 = !DILocation(line: 15, column: 12, scope: !305)
 !322 = !DILocation(line: 14, column: 32, scope: !305)
 !323 = !DILocation(line: 14, column: 27, scope: !305)
-!324 = distinct !{!324, !318, !325, !288, !290}
+!324 = distinct !{!324, !318, !325, !288, !328, !290}
 !325 = !DILocation(line: 15, column: 22, scope: !303)
 !326 = !DILocation(line: 14, column: 3, scope: !305)
 !327 = !DILocation(line: 16, column: 1, scope: !293)
+!328 = !{!"tapir.loop.target", i32 2}

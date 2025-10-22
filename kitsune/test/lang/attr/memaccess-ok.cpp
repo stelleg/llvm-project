@@ -4,10 +4,10 @@
 class C;
 
 // Attributes are valid on global variables.
-C* _readwrite cptr;
+C *_readwrite cptr;
 
 // Attributes are valid on function parameters.
 void f3(int _writeonly *out) {
-  int* in;
+  int *in;
   *out = *in;
 }

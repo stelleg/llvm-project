@@ -30,7 +30,7 @@ enum {
   Mobile = 67,
 };
 
-} // namespace KitAs
+} // namespace KitAS
 
 // LLVM has a maximum of 24-bits for the address space, clang has 22 (23
 // usually, but we stole a bit in Kitsune for the mobile attribute). Just in

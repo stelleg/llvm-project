@@ -17,7 +17,7 @@
 
 using namespace llvm;
 
-std::optional<TTID> llvm::createTTIDFrom(const ConstantInt& cint) {
+std::optional<TTID> llvm::createTTIDFrom(const ConstantInt &cint) {
   return createTTIDFrom(cint.getZExtValue());
 }
 

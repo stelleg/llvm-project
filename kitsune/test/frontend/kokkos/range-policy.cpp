@@ -4,12 +4,14 @@
 
 #include <Kokkos_Core.hpp>
 
+// clang-format off
 extern "C" void f(float* a, size_t N) {
   Kokkos::parallel_for("initialize_array", Kokkos::RangePolicy<>(0,N),
                        KOKKOS_LAMBDA(size_t i) {
                          a[i] = 0.0;
                        });
 }
+// clang-format on
 
 // CHECK-LABEL: void @f
 // CHECK-SAME: i64{{.+}} %[[N:.+]])

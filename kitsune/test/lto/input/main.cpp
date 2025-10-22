@@ -3,8 +3,7 @@
 #include <iostream>
 #include <kitsune.h>
 
-void vecadd(kitsune::mobile_ptr<double> c,
-            const kitsune::mobile_ptr<double> a,
+void vecadd(kitsune::mobile_ptr<double> c, const kitsune::mobile_ptr<double> a,
             const kitsune::mobile_ptr<double> b, size_t n);
 
 int main(int argc, char *argv[]) {

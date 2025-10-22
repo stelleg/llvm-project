@@ -37,8 +37,8 @@ static cl::opt<bool>
 /// contain any tapir loops.
 static const std::vector<TTID> noTTs;
 
-static std::unique_ptr<TapirTarget>
-createTT(TTID id, Module &m, const TapirTargetOptions &tto) {
+static std::unique_ptr<TapirTarget> createTT(TTID id, Module &m,
+                                             const TapirTargetOptions &tto) {
   // Yes, this is absolutely hideous. We should try to find a nicer way than
   // this horrendous conditionally compiled mess!
   switch (id) {

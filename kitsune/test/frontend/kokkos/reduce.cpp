@@ -7,15 +7,15 @@
 // RUN:     -fno-inline -o - %sysroot %s \
 // RUN:     | FileCheck %s
 
-#include <cstdio>
 #include <Kokkos_Core.hpp>
+#include <cstdio>
 
 extern "C" double f(int n) {
   double result;
   // expected-warning-re@+1 {{kokkos - parallel_reduce is not supported{{.*}}}}
   Kokkos::parallel_reduce(
-      "sum", n,
-      KOKKOS_LAMBDA(const int &i, double &lsum) { lsum += i; }, result);
+      "sum", n, KOKKOS_LAMBDA(const int &i, double &lsum) { lsum += i; },
+      result);
 
   return result;
 }

@@ -9,11 +9,11 @@ void loop() {
     // expected-error@8 {{forall statement must have an initialization expression}}
   }
 
-  forall(int j = 0; ; j++) {
+  forall(int j = 0;; j++) {
     // expected-error@12 {{forall statement must have a condition expression}}
   }
 
-  forall(int j = 0; j < 10; ) {
+  forall(int j = 0; j < 10;) {
     // expected-error@16 {{forall statement must have an increment expression}}
   }
 

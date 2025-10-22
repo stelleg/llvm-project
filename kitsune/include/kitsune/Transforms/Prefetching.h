@@ -22,7 +22,7 @@ namespace llvm {
 /// must should typically be run early in the Kitsune's post-tapir pipeline, but
 /// it is ok to run it later in the pipeline as well. This should only ever
 /// modify the host, but it may be profitable to examine the embedded device
-  /// modules when deciding if/when to prefetch.
+/// modules when deciding if/when to prefetch.
 class PrefetchingPass : public PassInfoMixin<PrefetchingPass> {
 public:
   PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam);

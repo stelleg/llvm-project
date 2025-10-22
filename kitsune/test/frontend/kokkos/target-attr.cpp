@@ -6,7 +6,7 @@
 
 #include <Kokkos_Core.hpp>
 
-void f(float* A, int N) {
+void f(float *A, int N) {
   // clang-format off
   [[tapir::target("i860")]] // expected-error {{unknown tapir target}}
   Kokkos::parallel_for(1024, KOKKOS_LAMBDA(const int i) {

@@ -10,8 +10,8 @@
 // RUN:     -fno-inline -o - %sysroot %s \
 // RUN:     | FileCheck %s
 
-#include <cstdio>
 #include <Kokkos_Core.hpp>
+#include <cstdio>
 
 extern "C" void f(int n) {
   // expected-warning-re@+1 {{kokkos - unsupported expression for range of parallel_for{{.*}}}}

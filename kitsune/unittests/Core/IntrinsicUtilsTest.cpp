@@ -128,8 +128,8 @@ TEST(KitIntrinsicUtils, getStreamFromLaunch) {
 
   CallInst *call0 =
       CallInst::Create(fty, f, {ctt, cnull, cnull, c0_8, c0_4, cnull, g});
-  CallInst *call1 = CallInst::Create(
-      fty, f, {ctt, cnull, cnull, c0_8, c0_4, cnull, g, cfp});
+  CallInst *call1 =
+      CallInst::Create(fty, f, {ctt, cnull, cnull, c0_8, c0_4, cnull, g, cfp});
 
   EXPECT_EQ(getStreamFromLaunch(*call0), g);
   EXPECT_EQ(getStreamFromLaunch(*call1), g);

@@ -4,16 +4,12 @@
 
 using namespace kitsune;
 
-void allocate(mobile_ptr<int>& buf, size_t n) {
-  buf.alloc(n);
-}
+void allocate(mobile_ptr<int> &buf, size_t n) { buf.alloc(n); }
 
 // CHECK-LABEL: _Z8allocate
 // CHECK: call {{.+}} @__kitrt_default_mem_alloc({{.+}})
 
-void deallocate(mobile_ptr<int>& buf) {
-  buf.free();
-}
+void deallocate(mobile_ptr<int> &buf) { buf.free(); }
 
 // CHECK-LABEL: _Z10deallocate
 // CHECK: call {{.+}} @__kitrt_default_mem_free({{.+}})

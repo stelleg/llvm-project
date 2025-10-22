@@ -138,8 +138,7 @@ StructType *llvm::getKernelPropertiesType(LLVMContext &ctx) {
 }
 
 GlobalVariable *llvm::createKernelPropertiesGlobal(StringRef kernelName,
-                                                   TTID tt,
-                                                   Module &m) {
+                                                   TTID tt, Module &m) {
   LLVMContext &ctx = m.getContext();
   StructType *type = getKernelPropertiesType(ctx);
   Constant *init = Constant::getNullValue(type);

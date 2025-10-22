@@ -8,13 +8,13 @@
 
 int main(int argc, char *argv[]) {
   [[tapir::strategy("seq")]]
-  forall(int i = 0; i < 1024; ++i) { }
+  forall(int i = 0; i < 1024; ++i) {}
 
   [[tapir::strategy("dac")]]
-  forall(int i = 0; i < 1024; ++i) { }
+  forall(int i = 0; i < 1024; ++i) {}
 
   [[tapir::strategy("dac")]]
-  forall(int i = 0; i < 1024; ++i) { }
+  forall(int i = 0; i < 1024; ++i) {}
 
   return 0;
 }

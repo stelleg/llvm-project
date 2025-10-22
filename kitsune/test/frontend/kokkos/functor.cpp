@@ -5,14 +5,12 @@
 // RUN:     -o - -Xclang -verify %sysroot %s \
 // RUN:     | FileCheck -vv %s
 
-#include <cstdio>
 #include <Kokkos_Core.hpp>
+#include <cstdio>
 
 struct Hello {
   KOKKOS_INLINE_FUNCTION
-  void operator() (const int i) const {
-    printf("Hello %d\n", i);
-  }
+  void operator()(const int i) const { printf("Hello %d\n", i); }
 };
 
 extern "C" void f(size_t n) {

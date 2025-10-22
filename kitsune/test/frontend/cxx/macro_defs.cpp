@@ -34,7 +34,6 @@ int isKitsune() {
 #endif // __kitsune
 }
 
-
 const char *getTapirTarget() {
 #ifdef __kitsune_tt__
   return __kitsune_tt__;

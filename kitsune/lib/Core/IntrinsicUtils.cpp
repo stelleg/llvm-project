@@ -29,7 +29,7 @@ bool llvm::isKitsuneIntrinsicBlocking(Intrinsic::ID id) {
   return not isKitsuneIntrinsicAsync(id);
 }
 
-Value* llvm::getStreamFromLaunch(const CallBase& call) {
+Value *llvm::getStreamFromLaunch(const CallBase &call) {
   assert(call.getIntrinsicID() == Intrinsic::kit_async_launch_kernel &&
          "Instruction must call async_launch_kernel intrinsic");
 

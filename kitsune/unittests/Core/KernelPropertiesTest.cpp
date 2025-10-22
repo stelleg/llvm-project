@@ -7,8 +7,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "kitsune/Core/KernelProperties.h"
-#include "llvm/IR/Module.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/Module.h"
 
 #include "gtest/gtest.h"
 

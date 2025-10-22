@@ -220,9 +220,7 @@ public:
     this->kokkosNoInit = kokkosNoInit;
   }
 
-  void setTTID(llvm::TTID tt) {
-    this->tt = tt;
-  }
+  void setTTID(llvm::TTID tt) { this->tt = tt; }
 
   void setStripmineLoops(bool stripmineLoops = true) {
     this->stripmineLoops = stripmineLoops;

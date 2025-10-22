@@ -6,8 +6,8 @@
 // RUN:     -o - %sysroot %s \
 // RUN:     | FileCheck %s
 
-#include <cstdio>
 #include <Kokkos_Core.hpp>
+#include <cstdio>
 
 extern "C" void f(int n) {
   // clang-format off

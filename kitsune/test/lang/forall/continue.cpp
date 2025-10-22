@@ -2,7 +2,7 @@
 
 #include <kitsune.h>
 
-void loop(int* a) {
+void loop(int *a) {
   // continue statements are allowed in a forall.
   forall(int i = 0; i < 10; i++) {
     if (i == 4) {

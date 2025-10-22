@@ -49,7 +49,7 @@ extern "C" char f7(char *[[kitsune::mobile]] ptr) { return f6((char *)ptr); }
 // CHECK: %[[cst:.+]] = addrspacecast ptr addrspace(67) {{.+}} to ptr
 // CHECK: call {{.*}}i8 @f6(ptr {{.*}}%[[cst]])
 
-extern "C" float* f8(char *[[kitsune::mobile]] ptr) { return (float*)ptr; }
+extern "C" float *f8(char *[[kitsune::mobile]] ptr) { return (float *)ptr; }
 
 // CHECK-LABEL: @f8
 // CHECK: %[[cst:.+]] = addrspacecast ptr addrspace(67) {{.+}} to ptr

@@ -4,7 +4,7 @@
 ; At this time, we always use the small code model. It is unlikely that we will
 ; ever use anything else, or make this configurable.
 ;
-; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_72 \
+; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_86 \
 ; RUN:     --tapir-cuda-runtime-bc=%S/input/libdevice.ll %s \
 ; RUN:     -passes='tapir-lowering<O1>,kit-cgfb' \
 ; RUN:     -cgfb-debug-target-machine 2>&1 \

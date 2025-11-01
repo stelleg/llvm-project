@@ -1,30 +1,30 @@
 ; Check that the -cgfb-ptxas-O<N> option is handled correctly.
 ;
-; RUN: opt -S %s --tapir=cuda --tapir-cuda-arch=sm_72 \
+; RUN: opt -S %s --tapir=cuda --tapir-cuda-arch=sm_86 \
 ; RUN:     -passes='kit-cgfb' -cgfb-### -o /dev/null 2>&1 \
 ; RUN:     | FileCheck %s --check-prefixes ALL,DEFAULT
 ;
-; RUN: opt -S %s --tapir=cuda --tapir-cuda-arch=sm_72 -cgfb-ptxas-O0 \
+; RUN: opt -S %s --tapir=cuda --tapir-cuda-arch=sm_86 -cgfb-ptxas-O0 \
 ; RUN:     -passes='kit-cgfb' -cgfb-### -o /dev/null 2>&1 \
 ; RUN:     | FileCheck %s --check-prefixes ALL,O0
 ;
-; RUN: opt -S %s --tapir=cuda --tapir-cuda-arch=sm_72 -cgfb-ptxas-O1 \
+; RUN: opt -S %s --tapir=cuda --tapir-cuda-arch=sm_86 -cgfb-ptxas-O1 \
 ; RUN:     -passes='kit-cgfb' -cgfb-### -o /dev/null 2>&1 \
 ; RUN:     | FileCheck %s --check-prefixes ALL,O1
 ;
-; RUN: opt -S %s --tapir=cuda --tapir-cuda-arch=sm_72 -cgfb-ptxas-O2 \
+; RUN: opt -S %s --tapir=cuda --tapir-cuda-arch=sm_86 -cgfb-ptxas-O2 \
 ; RUN:     -passes='kit-cgfb' -cgfb-### -o /dev/null 2>&1 \
 ; RUN:     | FileCheck %s --check-prefixes ALL,O2
 ;
-; RUN: opt -S %s --tapir=cuda --tapir-cuda-arch=sm_72 -cgfb-ptxas-O3 \
+; RUN: opt -S %s --tapir=cuda --tapir-cuda-arch=sm_86 -cgfb-ptxas-O3 \
 ; RUN:     -passes='kit-cgfb' -cgfb-### -o /dev/null 2>&1 \
 ; RUN:     | FileCheck %s --check-prefixes ALL,O3
 ;
-; RUN: not opt -S %s --tapir=cuda --tapir-cuda-arch=sm_72 -cgfb-ptxas-Os \
+; RUN: not opt -S %s --tapir=cuda --tapir-cuda-arch=sm_86 -cgfb-ptxas-Os \
 ; RUN:     -passes='kit-cgfb' -cgfb-### -o /dev/null 2>&1 \
 ; RUN:     | FileCheck %s --check-prefixes Os
 ;
-; RUN: not opt -S %s --tapir=cuda --tapir-cuda-arch=sm_72 -cgfb-ptxas-Oz \
+; RUN: not opt -S %s --tapir=cuda --tapir-cuda-arch=sm_86 -cgfb-ptxas-Oz \
 ; RUN:     -passes='kit-cgfb' -cgfb-### -o /dev/null 2>&1 \
 ; RUN:     | FileCheck %s --check-prefixes Oz
 ;

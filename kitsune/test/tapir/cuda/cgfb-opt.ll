@@ -4,13 +4,13 @@
 ; If a -cgfb-O<N> option is not provided, use the optimization level from the
 ; main tapir target options.
 ;
-; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_72 \
+; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_86 \
 ; RUN:     --tapir-cuda-runtime-bc=%S/input/libdevice.ll %s \
 ; RUN:     -passes='tapir-lowering<O1>,kit-cgfb' \
 ; RUN:     -cgfb-debug-target-machine 2>&1 \
 ; RUN:     | FileCheck %s --check-prefix O1
 ;
-; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_72 \
+; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_86 \
 ; RUN:     --tapir-cuda-runtime-bc=%S/input/libdevice.ll %s \
 ; RUN:     -passes='tapir-lowering<O3>,kit-cgfb' \
 ; RUN:     -cgfb-debug-target-machine 2>&1 \
@@ -19,25 +19,25 @@
 ; ------------------------------------------------------------------------------
 ; Otherwise, check that the optimization level makes it to the target machine.
 ;
-; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_72 \
+; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_86 \
 ; RUN:     --tapir-cuda-runtime-bc=%S/input/libdevice.ll %s \
 ; RUN:     -passes='tapir-lowering<O2>,kit-cgfb' \
 ; RUN:     -cgfb-O0 -cgfb-debug-target-machine 2>&1 \
 ; RUN:     | FileCheck %s --check-prefix O0
 ;
-; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_72 \
+; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_86 \
 ; RUN:     --tapir-cuda-runtime-bc=%S/input/libdevice.ll %s \
 ; RUN:     -passes='tapir-lowering<O2>,kit-cgfb' \
 ; RUN:     -cgfb-O1 -cgfb-debug-target-machine 2>&1 \
 ; RUN:     | FileCheck %s --check-prefix O1
 ;
-; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_72 \
+; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_86 \
 ; RUN:     --tapir-cuda-runtime-bc=%S/input/libdevice.ll %s \
 ; RUN:     -passes='tapir-lowering<O1>,kit-cgfb' \
 ; RUN:     -cgfb-O2 -cgfb-debug-target-machine 2>&1 \
 ; RUN:     | FileCheck %s --check-prefix O2
 ;
-; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_72 \
+; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_86 \
 ; RUN:     --tapir-cuda-runtime-bc=%S/input/libdevice.ll %s \
 ; RUN:     -passes='tapir-lowering<O2>,kit-cgfb' \
 ; RUN:     -cgfb-O3 -cgfb-debug-target-machine 2>&1 \

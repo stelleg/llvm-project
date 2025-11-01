@@ -5,7 +5,7 @@
 ; configurable, or if the model in the target machine is derived from the
 ; TapirTargetOptions, this should be changed.
 ;
-; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_72 \
+; RUN: opt -o /dev/null --tapir=cuda --tapir-cuda-arch=sm_86 \
 ; RUN:     --tapir-cuda-runtime-bc=%S/input/libdevice.ll %s \
 ; RUN:     -passes='tapir-lowering<O1>,kit-cgfb' \
 ; RUN:     -cgfb-debug-target-machine 2>&1 \

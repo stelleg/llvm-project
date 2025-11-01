@@ -173,9 +173,9 @@ private:
     args.push_back("--create");
     args.push_back(fatbinFilename);
 
-    std::string imgArgs = join_items("", "--image=profile=", tto.getCudaArch(),
-                                     ",file=", asmFile.getFilename());
-    args.push_back(imgArgs);
+    // std::string imgArgs = join_items("", "--image2=",
+    //                                  "file=", asmFile.getFilename());
+    // args.push_back(imgArgs);
 
     // FIXME: This code looks like it is broken.
     // std::list<std::string> PTXFilesArgList;

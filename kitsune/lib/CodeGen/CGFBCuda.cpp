@@ -173,9 +173,11 @@ private:
     args.push_back("--create");
     args.push_back(fatbinFilename);
 
-    // std::string imgArgs = join_items("", "--image2=",
-    //                                  "file=", asmFile.getFilename());
-    // args.push_back(imgArgs);
+#if KITSUNE_CUDA_VERSION_MAJOR < 13
+    std::string imgArgs = join_items("", "--image=profile=", tto.getCudaArch(),
+                                     ",file=", asmFile.getFilename());
+    args.push_back(imgArgs);
+#endif // KITSUNE_CUDA_VERSION_MAJOR
 
     // FIXME: This code looks like it is broken.
     // std::list<std::string> PTXFilesArgList;

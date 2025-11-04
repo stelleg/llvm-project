@@ -76,6 +76,7 @@ if (KITSUNE_CUDA_ENABLED)
   # FIXME: The only use of KITRT_CUDA_ENABLED seem to be some runtime
   # initialization code that is probably obsolete.
   target_compile_definitions(${KITSUNE_OBJLIB} PUBLIC
+    KITSUNE_CUDA_VERSION_MAJOR=${KITSUNE_CUDA_VERSION_MAJOR}
     KITRT_CUDA_ENABLED)
 
   target_include_directories(${KITSUNE_OBJLIB} SYSTEM PUBLIC
